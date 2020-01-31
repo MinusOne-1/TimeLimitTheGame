@@ -1,18 +1,5 @@
-import pygame, os
-from CONSTANTS import Maps, width, height
-
-
-def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
-
+import pygame
+from CONSTANTS import Maps, width, height, load_image
 
 tile_images = {'r_grass_end': load_image('textur/end_of_grass_from_up.png'),
                'l_grass_end': pygame.transform.flip(load_image('textur/end_of_grass_from_up.png'), True, False),
@@ -56,7 +43,7 @@ class Map():
     def map_drawing(self):
         sur = pygame.Surface((len(self.map) * 300, len(self.map[0]) * 300))
         self.map_surfaces.append(sur)
-        self.map_surfaces[0].fill((0, 0, 0))
+        self.map_surfaces[0].fill((50, 50, 50))
         for i in range(len(self.map)):
             for j in range(len(self.map[0])):
                 if self.map[i][j] == '~':
