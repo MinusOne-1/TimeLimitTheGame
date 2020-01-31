@@ -333,7 +333,6 @@ class PlayerStatShower(pygame.sprite.Sprite):
                 self.cur_frame -= 1
             if 0 < self.player.hunger < 0.3 * self.player.hunger_max and self.cur_frame == 1:
                 self.cur_frame -= 1
-
         elif self.name == 'Madness':
             pygame.draw.arc(self.screen, pygame.Color(200, 96, 134), (self.rect.x + 1, self.rect.y + 1, 69, 69),
                             0, 6.28 * (self.player.madness / self.player.madness_max), 34)
@@ -344,6 +343,21 @@ class PlayerStatShower(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
         # при наведении на показатель мышкой показывается число параметра и имя
+        if self.rect.collidepoint(pygame.mouse.get_pos()):
+            text = 'AAAAAAAAA'
+            if self.name == 'Light & Dark energy':
+                text = str(int(self.player.light)) + '/' + str(int(self.player.darkness))
+            elif self.name == 'Health':
+                text = str(int(self.player.health))
+            elif self.name == 'Hunger':
+                text = str(int(self.player.hunger))
+            elif self.name == 'Madness':
+                text = str(int(self.player.madness))
+            font = pygame.font.Font('data/DS Brushes Normal.ttf', 50)
+            text = font.render(text, 1, (255, 0, 0))
+            text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
+            text_y = self.rect.y - 50
+            self.screen.blit(text, (text_x, text_y))
 
     def setName(self, name):
         self.name = name
