@@ -1,19 +1,5 @@
 import pygame, math
-import os
-from CONSTANTS import width, height
-
-
-# функция для загрузки картинок
-def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
+from CONSTANTS import width, height, load_image
 
 
 class Player(pygame.sprite.Sprite):
@@ -58,7 +44,7 @@ class Player(pygame.sprite.Sprite):
 
         # Cлужебные параметры
         self.i_may_go = False
-        self.speed = 10  # скорость
+        self.speed = 8  # скорость
         self.force = 1  # сила внешнего взаимодействия объекта
         self.i_j_k = 0  # счётчик итераций, для кадров.
         self.x_y = [0, 0]  # координаты игрока на карте игры
@@ -139,7 +125,7 @@ class Player(pygame.sprite.Sprite):
                 self.map.coords_about_screean[0] -= self.speed
         if pygame.key.get_pressed()[pygame.K_DOWN]:
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] + self.speed + 15) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] + self.speed + 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
                     self.x_y[1] += self.speed
                     self.map.coords_about_screean[1] -= self.speed
             else:
