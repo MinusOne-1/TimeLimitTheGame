@@ -78,9 +78,10 @@ class Player(pygame.sprite.Sprite):
         # Параметры, которые изменяются от внешних воздействий и колайдов
         # None
         # перемещение
-        self.changeCoords()
+
         # Параметры отрисовки и нажатия на кнокпки
         pressed_keys = pygame.key.get_pressed()
+        self.changeCoords(pressed_keys)
         # замена позы на бег влево
         if pressed_keys[pygame.K_LEFT]:
             if self.naptr != 1:
@@ -107,8 +108,7 @@ class Player(pygame.sprite.Sprite):
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
 
     # метод проверки и изменения координат
-    def changeCoords(self):
-        keyboard = pygame.key.get_pressed()
+    def changeCoords(self, keyboard):
         if keyboard[pygame.K_LEFT]:
             if not self.i_may_go:
                 if self.map.map[(self.x_y[1] - 30) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
