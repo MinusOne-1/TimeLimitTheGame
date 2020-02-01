@@ -16,7 +16,7 @@ def load_image(name, colorkey=None):
 
 pygame.init()
 size = width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
-
+font = pygame.font.Font('data/m_Brody Regular.ttf', 50)
 # досаём карты из файла
 Maps = open('maps.txt', 'r')
 m = Maps.readlines()
@@ -29,4 +29,6 @@ for i in m:
     Maps[-1].append(i[:-1])
 
 # статические объекты, доступные для создания
-static_obj_param = {'test_obj': {'num_of_anim': 0, 'images': ['img_l', 'img_r', 'img_u', 'img_d'], 'comment': ''}}
+static_obj_param = {'broken_portal': {'num_of_anim': 1,
+                                 'images': ['static_objects_images/broken_portal.png', 'img_r', 'img_u', 'img_d'], 'image_w': 280, 'image_h': 400,
+                                 'rows' : 7, 'colomns': 2,'comment': 'That a portal!.. Ow... It`s broken...'}}
