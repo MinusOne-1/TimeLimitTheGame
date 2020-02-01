@@ -4,8 +4,6 @@ from map import Map
 from Player import Player, Menu
 from BaseObjectClasses import StaticObject
 
-class GameAndMenu():
-    pass
 
 class GameLevel():
     def __init__(self, screen):
@@ -42,7 +40,10 @@ class GameLevel():
         self.player_sprite.update(fps)
 
     def levelGenerator(self):
-        self.static_obj_not_in_frame.append(StaticObject(self.static_obj_sprite, self.screen, [3 * 300 + 50, 1 * 300 - 150], self.map_, 'broken_portal'))
+        self.static_obj_not_in_frame.append(
+            StaticObject(self.static_obj_sprite, self.screen, [3 * 300 + 50, 1 * 300 - 150], self.map_,
+                         'broken_portal'))
+
 
 class InGameMenuSprite():
     def __init__(self, group, player, screen):
@@ -52,19 +53,23 @@ class InGameMenuSprite():
     def update(self, clock, fps_):
         self.menu.update(clock, fps_)
 
+
 class MainMenu():
-    def __init__(self, screen):
+    def __init__(self, screen, x, y):
         self.screen = screen
         self.game_stat = 'Main_menu'
-        #группы спрайтов
+        # группы спрайтов
         self.buttons = pygame.sprite.Group()
-        x, y = width - 393 - 50, 100
+        x, y = x, y
         self.b_list = []
-        self.b_list.append(Button(self.buttons, 'interface_images/main_menu/play_b.png', x, y, lambda met: 'Playing', self))
+        self.b_list.append(
+            Button(self.buttons, 'interface_images/main_menu/play_b.png', x, y, lambda met: 'Playing', self))
         y = y + 50 + 390 // 2
-        self.b_list.append(Button(self.buttons, 'interface_images/main_menu/options_b.png', x, y, lambda met: 'Pause_menu', self))
+        self.b_list.append(
+            Button(self.buttons, 'interface_images/main_menu/options_b.png', x, y, lambda met: 'Pause_menu', self))
         y = y + 50 + 390 // 2
-        self.b_list.append(Button(self.buttons, 'interface_images/main_menu/exit_b.png', x, y, lambda met: exit(0), self))
+        self.b_list.append(
+            Button(self.buttons, 'interface_images/main_menu/exit_b.png', x, y, lambda met: exit(0), self))
 
     def update(self, point, mouse_button_down):
         self.buttons.update(point, mouse_button_down)
@@ -75,6 +80,7 @@ class MainMenu():
     def render(self):
         self.screen.fill((230, 230, 230))
         self.buttons.draw(self.screen)
+
 
 class Button(pygame.sprite.Sprite):
     def __init__(self, group, image, x, y, func, menu):
@@ -105,8 +111,20 @@ class Button(pygame.sprite.Sprite):
         if self.rect.collidepoint(point):
             self.cur_frame = 1
             if mouse_button_down:
-                self.menu.game_stat = self.method(True)
+                self.menu.pressMouseButton(self.method(True))
         else:
             self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
 
+
+class PauseMenu(MainMenu):
+    def __init__(self, screen, main_menu, x, y):
+        super().__init__(screen, x, y)
+        self.main_manu = main_menu
+
+    def pressMouseButton(self, state):
+        self.main_manu.pressMouseButton(state)
+
+    def render(self):
+        self.screen.fill((0, 0, 0))
+        self.buttons.draw(self.screen)
