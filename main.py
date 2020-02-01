@@ -11,9 +11,10 @@ screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
 pygame.display.set_caption('Time Limit!')
 full_screen_mod = True
 fps = clock.tick() / 1000
-from Level import GameLevel, MainMenu
+from Level import GameLevel, MainMenu, PauseMenu
 
-menu = MainMenu(screen)
+menu = MainMenu(screen, width - 393 - 50, 100)
+pause = PauseMenu(screen, menu, width // 2 - 393 - 50, 100)
 game = GameLevel(screen)
 
 # Основной цикл
@@ -30,12 +31,12 @@ while running:
                 else:
                     full_screen_mod = False
                     screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
-            # вспомогательные события
+            if event.key == pygame.K_TAB and menu.game_stat:
+                menu.game_stat = 'Pause_menu'
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_button_down = True
 
     fps = clock.tick() / 1000
-
     point = pygame.mouse.get_pos()
     if menu.game_stat == 'Main_menu':
         menu.update(point, mouse_button_down)
@@ -44,5 +45,6 @@ while running:
         game.update(fps)
         game.render(fps, point)
     elif menu.game_stat == 'Pause_menu':
-        pass
+        pause.update(point, mouse_button_down)
+        pause.render()
     pygame.display.flip()
