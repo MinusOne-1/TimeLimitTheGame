@@ -1,5 +1,6 @@
+
 import pygame, math
-from CONSTANTS import width, height, load_image
+from CONSTANTS import width, height, load_image, font
 
 
 class Player(pygame.sprite.Sprite):
@@ -107,7 +108,8 @@ class Player(pygame.sprite.Sprite):
 
     # метод проверки и изменения координат
     def changeCoords(self):
-        if pygame.key.get_pressed()[pygame.K_LEFT]:
+        keyboard = pygame.key.get_pressed()
+        if keyboard[pygame.K_LEFT]:
             if not self.i_may_go:
                 if self.map.map[(self.x_y[1] - 30) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
                     self.x_y[0] -= self.speed
@@ -115,7 +117,7 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.x_y[0] -= self.speed
                 self.map.coords_about_screean[0] += self.speed
-        if pygame.key.get_pressed()[pygame.K_RIGHT]:
+        if keyboard[pygame.K_RIGHT]:
             if not self.i_may_go:
                 if self.map.map[(self.x_y[1] + 30) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g':
                     self.x_y[0] += self.speed
@@ -123,7 +125,7 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.x_y[0] += self.speed
                 self.map.coords_about_screean[0] -= self.speed
-        if pygame.key.get_pressed()[pygame.K_DOWN]:
+        if keyboard[pygame.K_DOWN]:
             if not self.i_may_go:
                 if self.map.map[(self.x_y[1] + self.speed + 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
                     self.x_y[1] += self.speed
@@ -131,7 +133,7 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.x_y[1] += self.speed
                 self.map.coords_about_screean[1] -= self.speed
-        if pygame.key.get_pressed()[pygame.K_UP]:
+        if keyboard[pygame.K_UP]:
             if not self.i_may_go:
                 if self.map.map[(self.x_y[1] - self.speed - 30) // 300][(self.x_y[0] + 35) // 300] == 'g':
                     self.x_y[1] -= self.speed
@@ -211,9 +213,9 @@ class CraftMenuButton(pygame.sprite.Sprite):
         self.list_of_craft = []
         self.name = ''
 
-    def update(self, fps):
+    def update(self, fps, point):
         # При наведении мышкой выдвигается и задвигается назад в иначе
-        if self.rect.collidepoint(pygame.mouse.get_pos()):
+        if self.rect.collidepoint(point):
             if self.rect.x < self.x_closepoint:
                 self.rect.x += self.speed
         else:
@@ -232,7 +234,7 @@ class Menu(pygame.sprite.Sprite):
     def __init__(self, group, pl, screen, img=''):
         self.list_of_menu = []
         self.stats = []
-        self.clock = InGameClock(group, width - 300 - 50, height - 300 - 200)
+#        self.clock = InGameClock(group, width - 300 - 50, height - 300 - 200)
         self.createStats(group, pl, screen)
         super().__init__(group)
         self.image = pygame.Surface([70, 800])
@@ -241,12 +243,12 @@ class Menu(pygame.sprite.Sprite):
         self.rect.x = 30
         self.rect.y = (height - self.image.get_height()) // 2
 
-    def update(self, fps):
+    def update(self, fps, point):
         for i in range(3):
-            self.list_of_menu[i].update(fps)
+            self.list_of_menu[i].update(fps, point)
         for i in self.stats:
-            i.update(fps)
-        self.clock.update(fps)
+            i.update(fps, point)
+#        self.clock.update(fps)
 
     def createStats(self, group, pl, screen):
         x, y = width - 70 * 3 - 70 - 35, 100
@@ -303,7 +305,7 @@ class PlayerStatShower(pygame.sprite.Sprite):
             self.frames.append(sheet.subsurface(pygame.Rect(
                 frame_location, self.rect.size)))
 
-    def update(self, fps):
+    def update(self, fps, point):
         if self.name == 'Light & Dark energy':
             pygame.draw.rect(self.screen, pygame.Color(243, 242, 146), pygame.Rect(self.rect.x + 4,
                                                                                    self.rect.y + 5 + 112 * (1 - (
@@ -343,7 +345,7 @@ class PlayerStatShower(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
         # при наведении на показатель мышкой показывается число параметра и имя
-        if self.rect.collidepoint(pygame.mouse.get_pos()):
+        if self.rect.collidepoint(point):
             text = 'AAAAAAAAA'
             if self.name == 'Light & Dark energy':
                 text = str(int(self.player.light)) + '/' + str(int(self.player.darkness))
@@ -353,8 +355,7 @@ class PlayerStatShower(pygame.sprite.Sprite):
                 text = str(int(self.player.hunger))
             elif self.name == 'Madness':
                 text = str(int(self.player.madness))
-            font = pygame.font.Font('data/DS Brushes Normal.ttf', 50)
-            text = font.render(text, 1, (255, 0, 0))
+            text = font.render(text, 1, (230, 230, 230))
             text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
             text_y = self.rect.y - 50
             self.screen.blit(text, (text_x, text_y))
