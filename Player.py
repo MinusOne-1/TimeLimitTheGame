@@ -1,4 +1,3 @@
-
 import pygame, math
 from CONSTANTS import width, height, load_image, font
 
@@ -16,13 +15,13 @@ class Player(pygame.sprite.Sprite):
         self.frames = [[], [], [], []]
         self.frames_in_itter = 10  # кол-во иттераций на один кадр
         self.cur_frame = (0, 0)  # выделеный кадр анимации
-        self.num_of_anim = 2  # количество анимаций
+        self.num_of_anim = 3  # количество анимаций
 
         # разрезка западного направления
-        for i in range(0, (self.num_of_anim + 1) * 233, 466):
+        for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
             self.cut_sheet(Player.image_l, 5, 2, i, 1)
         # разрезка восточного направления
-        for i in range(0, (self.num_of_anim + 1) * 233, 466):
+        for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
             self.cut_sheet(Player.image_r, 5, 2, i, 3)
         self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
         self.rect = self.image.get_rect()
@@ -50,6 +49,8 @@ class Player(pygame.sprite.Sprite):
         self.i_j_k = 0  # счётчик итераций, для кадров.
         self.x_y = [0, 0]  # координаты игрока на карте игры
         self.mad_coaff = 0.09
+        self.state = None  # craft, run, stay, vector
+        self.vector = (self.speed, self.speed, 0, 0, False, False)
 
     def cut_sheet(self, sheet, columns, rows, ots, napr):
         self.rect = pygame.Rect(0, ots, sheet.get_width() // columns,
@@ -67,7 +68,7 @@ class Player(pygame.sprite.Sprite):
     def getStats(self):
         return (self.health, self.madness, self.darkness, self.light)
 
-    def update(self, fps, *args):
+    def update(self, fps, point, mouse_button_down):
         self.i_j_k += 1
         # Тиковые параметры, которые изменяются с течением времни.
         self.light += 0.5 * fps
@@ -78,19 +79,23 @@ class Player(pygame.sprite.Sprite):
         # Параметры, которые изменяются от внешних воздействий и колайдов
         # None
         # перемещение
-
+        if mouse_button_down:
+            self.state = 'vector'
+            self.findVector(point)
         # Параметры отрисовки и нажатия на кнокпки
         pressed_keys = pygame.key.get_pressed()
+        if self.state == 'vector':
+            self.toVector()
         self.changeCoords(pressed_keys)
         # замена позы на бег влево
-        if pressed_keys[pygame.K_LEFT]:
+        if pressed_keys[pygame.K_LEFT] or (self.state == 'vector' and self.vector[0] < 0 and self.vector[-2]):
             if self.naptr != 1:
                 self.naptr = 1
             self.cur_frame = (1, self.cur_frame[1])
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
             self.frames_in_itter = 8
         # замена позы на бег вправо
-        elif pressed_keys[pygame.K_RIGHT]:
+        elif pressed_keys[pygame.K_RIGHT] or (self.state == 'vector' and self.vector[0] > 0 and self.vector[-2]):
             if self.naptr != 3:
                 self.naptr = 3
             self.cur_frame = (1, self.cur_frame[1])
@@ -101,6 +106,10 @@ class Player(pygame.sprite.Sprite):
             self.cur_frame = (0, self.cur_frame[1])
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
             self.frames_in_itter = 10
+        if self.state == 'craft':
+            self.cur_frame = (2, self.cur_frame[1])
+            self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
+            self.frames_in_itter = 15
         # смена кадров
         if self.i_j_k % self.frames_in_itter == 0:
             self.cur_frame = (
@@ -108,34 +117,77 @@ class Player(pygame.sprite.Sprite):
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
 
     # метод проверки и изменения координат
+    def findVector(self, pos):
+        self.vector = (self.speed, self.speed, pos[0], pos[1], True, True)
+        if self.x_y[0] > pos[0]:
+            self.vector = (-self.vector[0], self.vector[1], self.vector[2], self.vector[3], True, True)
+        if self.x_y[1] > pos[1]:
+            self.vector = (self.vector[0], -self.vector[1], self.vector[2], self.vector[3], True, True)
+
+    def toVector(self):
+        if self.vector[0] > 0:
+            if self.x_y[0] <= self.vector[2]:
+                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g':
+                    self.x_y[0] += self.vector[0]
+                    self.map.coords_about_screean[0] -= self.vector[0]
+            else:
+                self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], False, self.vector[5])
+        else:
+            if self.x_y[0] >= self.vector[2]:
+                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
+                    self.x_y[0] += self.vector[0]
+                    self.map.coords_about_screean[0] -= self.vector[0]
+            else:
+                self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], False, self.vector[5])
+        if self.vector[1] > 0:
+            if self.x_y[1] <= self.vector[3]:
+                if self.map.map[(self.x_y[1] - self.speed - 10) // 300][(self.x_y[0] + 35) // 300] == 'g':
+                    self.x_y[1] += self.vector[1]
+                    self.map.coords_about_screean[1] -= self.vector[1]
+            else:
+                self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.vector[4], False)
+        else:
+            if self.x_y[1] >= self.vector[3]:
+                if self.map.map[(self.x_y[1] + self.speed - 10) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                    self.x_y[1] += self.vector[1]
+                    self.map.coords_about_screean[1] -= self.vector[1]
+            else:
+                self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.vector[4], False)
+        if not self.vector[-1] and not self.vector[-2]:
+            self.state = 'stay'
+
     def changeCoords(self, keyboard):
         if keyboard[pygame.K_LEFT]:
+            self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] - 30) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
                     self.x_y[0] -= self.speed
                     self.map.coords_about_screean[0] += self.speed
             else:
                 self.x_y[0] -= self.speed
                 self.map.coords_about_screean[0] += self.speed
         if keyboard[pygame.K_RIGHT]:
+            self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] + 30) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g':
                     self.x_y[0] += self.speed
                     self.map.coords_about_screean[0] -= self.speed
             else:
                 self.x_y[0] += self.speed
                 self.map.coords_about_screean[0] -= self.speed
         if keyboard[pygame.K_DOWN]:
+            self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] + self.speed + 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] + self.speed -10) // 300][(self.x_y[0] - 35) // 300] == 'g':
                     self.x_y[1] += self.speed
                     self.map.coords_about_screean[1] -= self.speed
             else:
                 self.x_y[1] += self.speed
                 self.map.coords_about_screean[1] -= self.speed
         if keyboard[pygame.K_UP]:
+            self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] - self.speed - 30) // 300][(self.x_y[0] + 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] - self.speed -10) // 300][(self.x_y[0] + 35) // 300] == 'g':
                     self.x_y[1] -= self.speed
                     self.map.coords_about_screean[1] += self.speed
             else:
@@ -191,6 +243,9 @@ class Player(pygame.sprite.Sprite):
             self.darkness = math.floor(math.fabs(self.darkness / 100)) * 100
             self.light = math.floor(math.fabs(self.light / 100)) * 100
 
+    def giveSomething(self, thing):
+        pass
+
     def eatSomething(self, food):
         pass
 
@@ -234,7 +289,7 @@ class Menu(pygame.sprite.Sprite):
     def __init__(self, group, pl, screen, img=''):
         self.list_of_menu = []
         self.stats = []
-#        self.clock = InGameClock(group, width - 300 - 50, height - 300 - 200)
+        #        self.clock = InGameClock(group, width - 300 - 50, height - 300 - 200)
         self.createStats(group, pl, screen)
         super().__init__(group)
         self.image = pygame.Surface([70, 800])
@@ -248,7 +303,8 @@ class Menu(pygame.sprite.Sprite):
             self.list_of_menu[i].update(fps, point)
         for i in self.stats:
             i.update(fps, point)
-#        self.clock.update(fps)
+
+    #        self.clock.update(fps)
 
     def createStats(self, group, pl, screen):
         x, y = width - 70 * 3 - 70 - 35, 100
@@ -287,6 +343,7 @@ class PlayerStatShower(pygame.sprite.Sprite):
             self.cut_sheet(PlayerStatShower.base_stat_img, 3, 2)
         elif img == 'l_and_d':
             self.image = PlayerStatShower.l_d_gaier_img
+            self.frames.append(self.image)
         if img != None and img != 'l_and_d':
             self.image = self.frames[self.cur_frame]
         self.rect = self.image.get_rect()
@@ -316,7 +373,6 @@ class PlayerStatShower(pygame.sprite.Sprite):
                              pygame.Rect(self.rect.x + self.image.get_width() - 4 - 35,
                                          self.rect.y + 5 + 112 * (1 - (self.player.darkness / 100)),
                                          35, 112 * (self.player.darkness / 100)))
-            return 0
         elif self.name == 'Health':
             pygame.draw.arc(self.screen, pygame.Color(70, 136, 50), (self.rect.x + 1, self.rect.y + 1, 69, 69),
                             0, 6.28 * (self.player.health / self.player.health_max), 34)
@@ -356,8 +412,12 @@ class PlayerStatShower(pygame.sprite.Sprite):
             elif self.name == 'Madness':
                 text = str(int(self.player.madness))
             text = font.render(text, 1, (230, 230, 230))
-            text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
-            text_y = self.rect.y - 50
+            if self.name != 'Light & Dark energy':
+                text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
+                text_y = self.rect.y - 50
+            else:
+                text_x = self.rect.x - text.get_width() // 2 + self.rect.w // 2
+                text_y = self.rect.y - text.get_height() // 2 + self.rect.h // 2
             self.screen.blit(text, (text_x, text_y))
 
     def setName(self, name):
