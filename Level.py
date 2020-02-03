@@ -27,6 +27,11 @@ class GameLevel():
         self.menu = InGameMenuSprite(self.menu_sprite, self.player_main, self.screen)
         self.levelGenerator()
 
+    def getCoordsOnMap(self, coords):
+        coords_on_map = (
+            coords[0] - self.map_.coords_about_screean[0], coords[1] - self.map_.coords_about_screean[1])
+        return coords_on_map
+
     def render(self, fps, point):
         self.screen.fill((50, 50, 50))
         self.map_.draw()
@@ -36,8 +41,8 @@ class GameLevel():
         self.menu_sprite.update(fps, point)
         self.menu_sprite.draw(self.screen)
 
-    def update(self, fps):
-        self.player_sprite.update(fps)
+    def update(self, fps, point, mouse_button_down):
+        self.player_sprite.update(fps, self.getCoordsOnMap(point), mouse_button_down)
 
     def levelGenerator(self):
         self.static_obj_not_in_frame.append(
