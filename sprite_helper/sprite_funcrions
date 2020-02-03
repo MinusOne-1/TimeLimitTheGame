@@ -1,0 +1,55 @@
+from PIL import Image
+
+
+def mirror(im):  # функция для зеркального отображения картинки
+    pixels = im.load()
+    x, y = im.size
+    for i in range(x // 2):
+        for j in range(y):
+            pixels[i, j], pixels[x - i - 1, j] = pixels[x - i - 1, j], pixels[i, j]
+    return im
+
+
+# склеивание спрайтов в порядке добавления в лист
+def sprite_solver(list_of_files, wigth, height, row, collomn, sprite_name):
+    im = Image.new("RGBA", (wigth * collomn, height * row))
+    for i in range(0, height * row, height):
+        for j in range(0, wigth * collomn, wigth):
+            img1 = Image.open(list_of_files[i // height][j // wigth])
+            im.paste(img1, (j, i))
+    im.save(sprite_name)
+
+
+# склеивание друх больших частей одного спрайта
+def generally_sprite(fist_s, second_s, sprite_name):
+    fist_s = Image.open(fist_s)
+    second_s = Image.open(second_s)
+    im = Image.new("RGBA", (fist_s.width, fist_s.height + second_s.height))
+    im.paste(fist_s, (0, 0))
+    im.paste(second_s, (0, fist_s.height))
+    im.save(sprite_name)
+
+
+# склеивание спрайта, так, чтобы анимация была повёлнута в другую сторону
+def revesed_sprite_solver(list_of_files, wigth, height, row, collomn, sprite_name):
+    im = Image.new("RGBA", (wigth * collomn, height * row))
+    for i in range(0, height * row, height):
+        for j in range(0, wigth * collomn, wigth):
+            img1 = Image.open(list_of_files[i // height][j // wigth])
+            im.paste(mirror(img1), (j, i))
+    im.save(sprite_name)
+
+#список на склейку
+list_of_files = [['C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_1.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_2.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_3.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_4.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_5.png'],
+                 ['C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_1.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_2.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_3.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_4.png',
+                  'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_5.png']]
+revesed_sprite_solver(list_of_files, 205, 233, 2, 5, 'second_sprite.png')
+generally_sprite('first_sprite.png',
+                 'second_sprite.png', 'res_sprite.png')
