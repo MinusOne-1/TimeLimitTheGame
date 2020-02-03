@@ -31,6 +31,11 @@ while running:
                 else:
                     full_screen_mod = False
                     screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+            if event.key == pygame.K_SPACE:
+                if game.player_main.state == 'craft':
+                    game.player_main.state = 'stay'
+                else:
+                    game.player_main.state = 'craft'
             if event.key == pygame.K_TAB and menu.game_stat:
                 menu.game_stat = 'Pause_menu'
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -42,7 +47,7 @@ while running:
         menu.update(point, mouse_button_down)
         menu.render()
     elif menu.game_stat == 'Playing':
-        game.update(fps)
+        game.update(fps, point, mouse_button_down)
         game.render(fps, point)
     elif menu.game_stat == 'Pause_menu':
         pause.update(point, mouse_button_down)
