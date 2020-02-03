@@ -1,6 +1,7 @@
 import pygame
 import os
 
+
 # функция для загрузки картинок
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
@@ -12,6 +13,8 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
+
+
 
 
 pygame.init()
@@ -30,5 +33,10 @@ for i in m:
 
 # статические объекты, доступные для создания
 static_obj_param = {'broken_portal': {'num_of_anim': 1,
-                                 'images': ['static_objects_images/broken_portal.png', 'img_r', 'img_u', 'img_d'], 'image_w': 280, 'image_h': 400,
-                                 'rows' : 7, 'colomns': 2,'comment': 'That a portal!.. Ow... It`s broken...'}}
+                                      'images': ['static_objects_images/broken_portal.png', 'img_r', 'img_u', 'img_d'],
+                                      'image_w': 280, 'image_h': 400,
+                                      'rows': 7, 'colomns': 2, 'comment': 'That a portal!.. Ow... It`s broken...'}}
+dinamic_obj_param = {}
+interaction_obj_param = {}
+thing_param = {'name_th': {'image': 'iamge.png', 'type': 'equipment/food',
+                           'strength': 100, 'usage': -10, 'actions':'use/drop'}}
