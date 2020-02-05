@@ -6,6 +6,8 @@ class Player(pygame.sprite.Sprite):
     # картинки ерсонажа с разных сторон
     image_l = load_image('player_character/jaylf_sprite_l.png')
     image_r = load_image('player_character/jaylf_sprite_r.png')
+    image_d = load_image('player_character/jaylf_sprite_d_stay.png')
+    image_u = load_image('player_character/jaylf_sprite_u_stay.png')
 
     def __init__(self, group, map_):
         super().__init__(group)
@@ -23,6 +25,12 @@ class Player(pygame.sprite.Sprite):
         # разрезка восточного направления
         for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
             self.cut_sheet(Player.image_r, 5, 2, i, 3)
+        #нарезка переднего направления
+        for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
+            self.cut_sheet(Player.image_d, 5, 2, i, 0)
+        # нарезка pflytuj направления
+        for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
+            self.cut_sheet(Player.image_u, 5, 2, i, 2)
         self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
         self.rect = self.image.get_rect()
         self.rect.x = width // 2 - self.image.get_width() // 2
@@ -51,6 +59,7 @@ class Player(pygame.sprite.Sprite):
         self.mad_coaff = 0.09
         self.state = None  # craft, run, stay, vector
         self.vector = (self.speed, self.speed, 0, 0, False, False)
+        self.timer = 0
 
     def cut_sheet(self, sheet, columns, rows, ots, napr):
         self.rect = pygame.Rect(0, ots, sheet.get_width() // columns,
@@ -101,20 +110,42 @@ class Player(pygame.sprite.Sprite):
             self.cur_frame = (1, self.cur_frame[1])
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
             self.frames_in_itter = 8
+        elif pressed_keys[pygame.K_DOWN] or (self.state == 'vector' and self.vector[1] > 0 and self.vector[-1]):
+            if self.naptr != 0:
+                self.naptr = 0
+            self.cur_frame = (1, self.cur_frame[1])
+            self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
+            self.frames_in_itter = 8
+        elif pressed_keys[pygame.K_UP] or (self.state == 'vector' and self.vector[1] < 0 and self.vector[-1]):
+            if self.naptr != 2:
+                self.naptr = 2
+            self.cur_frame = (1, self.cur_frame[1])
+            self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
+            self.frames_in_itter = 3
         # замена на позы на стойку
         else:
             self.cur_frame = (0, self.cur_frame[1])
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
             self.frames_in_itter = 10
         if self.state == 'craft':
-            self.cur_frame = (2, self.cur_frame[1])
-            self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
-            self.frames_in_itter = 15
+            if self.timer >= 9:
+                self.state = 'stay'
+                self.timer = 0
+            if self.timer == 0:
+                self.cur_frame = (2, 0)
+                self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
+                self.frames_in_itter = 15
+            if 0 < self.timer < 9:
+                self.cur_frame = (2, self.cur_frame[1])
+                self.frames_in_itter = 15
+                self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
         # смена кадров
         if self.i_j_k % self.frames_in_itter == 0:
             self.cur_frame = (
                 self.cur_frame[0], (self.cur_frame[1] + 1) % len(self.frames[self.naptr][self.cur_frame[0]]))
             self.image = self.frames[self.naptr][self.cur_frame[0]][self.cur_frame[1]]
+            if self.timer < 9 and (self.state == 'craft'):
+                self.timer += 1
 
     # метод проверки и изменения координат
     def findVector(self, pos):
@@ -141,14 +172,14 @@ class Player(pygame.sprite.Sprite):
                 self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], False, self.vector[5])
         if self.vector[1] > 0:
             if self.x_y[1] <= self.vector[3]:
-                if self.map.map[(self.x_y[1] - self.speed - 10) // 300][(self.x_y[0] + 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] - self.speed + 30) // 300][(self.x_y[0] + 35) // 300] == 'g':
                     self.x_y[1] += self.vector[1]
                     self.map.coords_about_screean[1] -= self.vector[1]
             else:
                 self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.vector[4], False)
         else:
             if self.x_y[1] >= self.vector[3]:
-                if self.map.map[(self.x_y[1] + self.speed - 10) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] + self.speed - 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
                     self.x_y[1] += self.vector[1]
                     self.map.coords_about_screean[1] -= self.vector[1]
             else:
@@ -178,7 +209,7 @@ class Player(pygame.sprite.Sprite):
         if keyboard[pygame.K_DOWN]:
             self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] + self.speed -10) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] + self.speed + 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
                     self.x_y[1] += self.speed
                     self.map.coords_about_screean[1] -= self.speed
             else:
@@ -187,7 +218,7 @@ class Player(pygame.sprite.Sprite):
         if keyboard[pygame.K_UP]:
             self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] - self.speed -10) // 300][(self.x_y[0] + 35) // 300] == 'g':
+                if self.map.map[(self.x_y[1] - self.speed - 30) // 300][(self.x_y[0] + 35) // 300] == 'g':
                     self.x_y[1] -= self.speed
                     self.map.coords_about_screean[1] += self.speed
             else:
