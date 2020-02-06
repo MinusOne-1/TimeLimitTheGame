@@ -1,4 +1,5 @@
 import pygame, math
+from math import sqrt as sq
 from CONSTANTS import width, height, load_image, font
 
 
@@ -9,8 +10,9 @@ class Player(pygame.sprite.Sprite):
     image_d = load_image('player_character/jaylf_sprite_d_stay.png')
     image_u = load_image('player_character/jaylf_sprite_u_stay.png')
 
-    def __init__(self, group, map_):
+    def __init__(self, group, map_, level):
         super().__init__(group)
+        self.level = level
         self.map = map_
         self.naptr = 1  # направление персонажа относительно север-юг-запад-восток:
         #  0 - Юг, 1 - запад, 2 - север, 3 - восток
@@ -53,7 +55,7 @@ class Player(pygame.sprite.Sprite):
         # Cлужебные параметры
         self.i_may_go = False
         self.speed = 8  # скорость
-        self.force = 1  # сила внешнего взаимодействия объекта
+        self.force = 50  # дальность внешнего взаимодействия объекта
         self.i_j_k = 0  # счётчик итераций, для кадров.
         self.x_y = [0, 0]  # координаты игрока на карте игры
         self.mad_coaff = 0.09
@@ -79,6 +81,8 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, fps, point, mouse_button_down):
         self.i_j_k += 1
+        if self.health <= 0:
+            self.level.level_state = 'die'
         # Тиковые параметры, которые изменяются с течением времни.
         self.light += 0.5 * fps
         if self.light >= 100:
@@ -93,6 +97,7 @@ class Player(pygame.sprite.Sprite):
             self.findVector(point)
         # Параметры отрисовки и нажатия на кнокпки
         pressed_keys = pygame.key.get_pressed()
+
         if self.state == 'vector':
             self.toVector()
         self.changeCoords(pressed_keys)
@@ -228,6 +233,33 @@ class Player(pygame.sprite.Sprite):
     # метод применения заклинания к персонажу
     def castChar(self, char):
         pass
+
+    def collideAnyInMap(self):
+        for i in self.level.static_obj_not_in_frame:
+            if self.collideRectImMap(i.rect):
+                return False
+        for i in self.level.interaction_obj_not_in_frame:
+            if self.collideRectImMap(i.rect):
+                return False
+        return True
+
+    def collideRectImMapWithSpeed(self, rect, x_y, speed):
+        pass
+    def collideRectImMap(self, rect):
+        x, y, w, h = rect
+        x1, y1, w1, h1 = self.rect.x + self.rect.w // 2 - self.force , self.rect.y + self.rect.h - 15 - self.force, self.force * 2, self.force * 2
+        if ((x <= x1 <= x + w and y <= y1 <= y + h) or
+                (x <= x1 + w1 <= x + w and y <= y1 + h1 <= y + h) or
+                (x <= x1 + w1 <= x + w and y <= y1 <= y + h) or
+                (x <= x1 <= x + w and y <= y1 + h1 <= y + h) or
+
+                (x1 <= x <= x1 + w1 and y1 <= y <= y1 + h1) or
+                (x1 <= x + w <= x1 + w1 and y1 <= y + h <= y1 + h1) or
+                (x1 <= x + w <= x1 + w1 and y1 <= y <= y1 + h1) or
+                (x1 <= x <= x1 + w1 and y1 <= y + h <= y1 + h1)):
+            return True
+        else:
+            return False
 
     # метод изменения здоровья персонажа
     def changeHealthAbout(self, num):
@@ -456,6 +488,9 @@ class PlayerStatShower(pygame.sprite.Sprite):
 
     def setParam(self, num):
         self.num = num
+
+
+
 
 
 class InGameClock(pygame.sprite.Sprite):
