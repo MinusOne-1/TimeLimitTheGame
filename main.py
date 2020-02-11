@@ -53,7 +53,6 @@ while running:
         menu.update(point, mouse_button_down)
         menu.render()
     elif menu.game_stat == 'Playing':
-        game.update(fps, point, mouse_button_down, mouse_button_down_r)
         game.render(fps, point, mouse_button_down, mouse_button_down_r)
     elif menu.game_stat == 'Pause_menu':
         pause.update(point, mouse_button_down)
