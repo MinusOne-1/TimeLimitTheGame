@@ -2,19 +2,21 @@ import pygame
 from CONSTANTS import width, height, load_image, font
 from map import Map
 from Player import Player, Menu
-from BaseObjectClasses import StaticObject, InteractionContainer, InteractionObject
+from BaseObjectClasses import StaticObject, InteractionObject, DefaultThing, ThingBox
 
 
 class GameLevel():
     def __init__(self, screen, main_menu):
         self.screen = screen
         self.main_menu = main_menu
+
         # группы спрайтов
         self.menu_sprite = pygame.sprite.Group()
         self.player_sprite = pygame.sprite.Group()
         self.static_obj_not_in_frame = []
         self.dinamic_obj_not_in_frame = []
         self.interaction_obj_not_in_frame = []
+        self.things_ogf_spr = pygame.sprite.Group()
         self.interaction_obj_sprite = pygame.sprite.Group()
         self.static_obj_sprite = pygame.sprite.Group()
         self.dinamic_obj_sprite = pygame.sprite.Group()
@@ -23,6 +25,7 @@ class GameLevel():
         self.map_ = Map(self.screen)  # карта
         self.player_main = Player(self.player_sprite, self.map_, self)  # игрок
         self.player_main.teleportTo(self.map_.first_player_coords[0], self.map_.first_player_coords[1])
+        self.player_main.setInventaryBox(ThingBox(self.player_main.inventary_group, 10, (width // 2 - (10 * 70 + (10 + 1) * 10) // 2, height - 200), self.player_main))
 
         self.map_.changeCoords([-self.player_main.x_y[0] + width // 2,
                                 -self.player_main.x_y[1] + height // 2 + self.player_main.image.get_height() // 2 - 10])
@@ -37,11 +40,16 @@ class GameLevel():
         return coords_on_map
 
     def cleanLevel(self):
+        self.screen = screen
+        self.main_menu = main_menu
+
+        # группы спрайтов
         self.menu_sprite = pygame.sprite.Group()
         self.player_sprite = pygame.sprite.Group()
         self.static_obj_not_in_frame = []
         self.dinamic_obj_not_in_frame = []
         self.interaction_obj_not_in_frame = []
+        self.things_ogf_spr = pygame.sprite.Group()
         self.interaction_obj_sprite = pygame.sprite.Group()
         self.static_obj_sprite = pygame.sprite.Group()
         self.dinamic_obj_sprite = pygame.sprite.Group()
@@ -50,6 +58,9 @@ class GameLevel():
         self.map_ = Map(self.screen)  # карта
         self.player_main = Player(self.player_sprite, self.map_, self)  # игрок
         self.player_main.teleportTo(self.map_.first_player_coords[0], self.map_.first_player_coords[1])
+        self.player_main.setInventaryBox(
+            ThingBox(self.player_main.inventary_group, 10, (width // 2 - (10 * 70 + (10 + 1) * 10) // 2, height - 200),
+                     self.player_main))
 
         self.map_.changeCoords([-self.player_main.x_y[0] + width // 2,
                                 -self.player_main.x_y[1] + height // 2 + self.player_main.image.get_height() // 2 - 10])
@@ -66,8 +77,13 @@ class GameLevel():
         self.interaction_obj_sprite.draw(self.screen)
         self.interaction_obj_sprite.update(fps, point, mouse_button_down, mouse_button_down_r)
         self.player_sprite.draw(self.screen)
+
         self.menu_sprite.update(fps, point)
         self.menu_sprite.draw(self.screen)
+        self.player_sprite.update(fps, self.getCoordsOnMap(point), mouse_button_down)
+        self.things_ogf_spr.draw(self.screen)
+        self.things_ogf_spr.update(fps, point, mouse_button_down)
+
         if self.level_state == 'win':
             self.main_menu.game_stat = 'WinFrame'
             self.cleanLevel()
@@ -77,18 +93,35 @@ class GameLevel():
             self.cleanLevel()
             return 0
 
-    def update(self, fps, point, mouse_button_down, mouse_button_down_r):
-
-        self.player_sprite.update(fps, self.getCoordsOnMap(point), mouse_button_down)
-
     def levelGenerator(self):
         self.static_obj_not_in_frame.append(
             StaticObject(self.static_obj_sprite, self.screen, [3 * 300 + 50, 1 * 300 - 150], self.map_,
                          'broken_portal'))
+        self.static_obj_not_in_frame.append(
+            StaticObject(self.static_obj_sprite, self.screen, [4 * 300, 1 * 300], self.map_,
+                         'sign_1'))
+        self.static_obj_not_in_frame.append(
+            StaticObject(self.static_obj_sprite, self.screen, [9 * 300, 3 * 300 - 180], self.map_,
+                         'sign_2'))
+        self.static_obj_not_in_frame.append(
+            StaticObject(self.static_obj_sprite, self.screen, [11 * 300, 3 * 300 - 180], self.map_,
+                         'sign_3'))
+        self.static_obj_not_in_frame.append(
+            StaticObject(self.static_obj_sprite, self.screen, [16 * 300, 3 * 300 - 180], self.map_,
+                         'sign_4'))
+        self.static_obj_not_in_frame.append(
+            StaticObject(self.static_obj_sprite, self.screen, [25 * 300, 3 * 300 - 180], self.map_,
+                         'sign_5'))
+        self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
+                                                                   [24 * 300 + 50, 5 * 300 - 150], self.map_,
+                                                                   'bush', self.player_main))
         self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
                                                                    [24 * 300 + 50, 3 * 300 - 150], self.map_, 'cup_of_power', self.player_main))
         self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
                                                                    [24 * 300 + 50, 11 * 300 - 150], self.map_, 'end_portal', self.player_main))
+        DefaultThing(self.things_ogf_spr, 'grass_matirial' ,[16 * 300 + 50, 3 * 300], 10, self)
+        DefaultThing(self.things_ogf_spr, 'grass_matirial', [20 * 300 + 50, 3 * 300], 10, self)
+
 
 class InGameMenuSprite():
     def __init__(self, group, player, screen):
