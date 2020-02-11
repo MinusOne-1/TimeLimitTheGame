@@ -12,6 +12,8 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, group, map_, level):
         super().__init__(group)
+        self.inventary_group = pygame.sprite.Group()
+        self.inventary = ''
         self.level = level
         self.map = map_
         self.naptr = 1  # направление персонажа относительно север-юг-запад-восток:
@@ -58,11 +60,14 @@ class Player(pygame.sprite.Sprite):
         self.force = 50  # дальность внешнего взаимодействия объекта
         self.i_j_k = 0  # счётчик итераций, для кадров.
         self.x_y = [0, 0]  # координаты игрока на карте игры
+        self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
         self.mad_coaff = 0.09
         self.state = None  # craft, run, stay, vector
         self.vector = (self.speed, self.speed, 0, 0, False, False)
         self.timer = 0
 
+    def setInventaryBox(self, box):
+        self.inventary = box
     def cut_sheet(self, sheet, columns, rows, ots, napr):
         self.rect = pygame.Rect(0, ots, sheet.get_width() // columns,
                                 sheet.get_height() // (rows * self.num_of_anim))
@@ -79,7 +84,22 @@ class Player(pygame.sprite.Sprite):
     def getStats(self):
         return (self.health, self.madness, self.darkness, self.light)
 
+    def getCoordsOnMap(self, coords):
+        coords_on_map = (
+            coords[0] - self.map.coords_about_screean[0], coords[1] - self.map.coords_about_screean[1])
+        return coords_on_map
+
+    def getCoordsInFrame(self, coords):
+        coords_on_screen = (
+            self.level.map_.coords_about_screean[0] + coords[0], self.level.map_.coords_about_screean[1] + coords[1])
+        return coords_on_screen
+
     def update(self, fps, point, mouse_button_down):
+        self.inventary_group.draw(self.level.screen)
+        self.inventary_group.update()
+
+        self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
+        pygame.draw.rect(self.level.screen, pygame.color.Color(255, 0, 0), self.force_rect)
         self.i_j_k += 1
         if self.health <= 0:
             self.level.level_state = 'die'
@@ -92,7 +112,7 @@ class Player(pygame.sprite.Sprite):
         # Параметры, которые изменяются от внешних воздействий и колайдов
         # None
         # перемещение
-        if mouse_button_down:
+        if mouse_button_down and not self.inventary.rect.collidepoint(self.getCoordsInFrame(point)):
             self.state = 'vector'
             self.findVector(point)
         # Параметры отрисовки и нажатия на кнокпки
@@ -247,6 +267,7 @@ class Player(pygame.sprite.Sprite):
         pass
     def collideRectImMap(self, rect):
         x, y, w, h = rect
+
         x1, y1, w1, h1 = self.rect.x + self.rect.w // 2 - self.force , self.rect.y + self.rect.h - 15 - self.force, self.force * 2, self.force * 2
         if ((x <= x1 <= x + w and y <= y1 <= y + h) or
                 (x <= x1 + w1 <= x + w and y <= y1 + h1 <= y + h) or
@@ -314,6 +335,7 @@ class Player(pygame.sprite.Sprite):
 
     def teleportTo(self, x, y):
         self.x_y = [x, y]
+        self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
 
 
 class CraftMenuButton(pygame.sprite.Sprite):
