@@ -7,10 +7,11 @@ def burh(self):
                  self.player.level)
     self.may_be_interacted = False
 
-interaction_obj_param['bush']={'num_of_anim': 1,
-                              'images': ['interaction_object_image/stick_bush.png', 'img_r', 'img_u', 'img_d'],
-                              'image_w': 200, 'image_h': 137, 'rows': 1, 'colomns': 2,
-                              'comment': 'a bush. Ok.', 'fuc': burh}
+
+interaction_obj_param['bush'] = {'num_of_anim': 1,
+                                 'images': ['interaction_object_image/stick_bush.png', 'img_r', 'img_u', 'img_d'],
+                                 'image_w': 200, 'image_h': 137, 'rows': 1, 'colomns': 2,
+                                 'comment': 'a bush. Ok.', 'fuc': burh}
 
 
 class BaseObject(pygame.sprite.Sprite):
@@ -66,7 +67,7 @@ class StaticObject(BaseObject):
     def update(self, fps, point):
         self.rect.x, self.rect.y = self.getCoordsInFrame()
         self.collideMouse(point)
-        if self.num_of_anim>=1:
+        if self.num_of_anim >= 1:
             self.i_j_k += 1
             if self.i_j_k % self.frames_in_itter == 0:
                 self.cur_frame = (
@@ -138,12 +139,14 @@ class InteractionObject(BaseObject):
             elif mouse_button_down:
                 self.interaction()
 
+
 class InteractionContainer(InteractionObject):
     def __init__(self, group, screen, x_y, map_, obj_name):
         super().__init__(group, screen, x_y, map_, obj_name)
         self.conteiners = pygame.sprite.Group()
-        self.container = ThingBox(self.conteiners,1 ,[self.rect.x
-                                                    , self.rect.y])
+        self.container = ThingBox(self.conteiners, 1, [self.rect.x
+            , self.rect.y])
+
 
 class DefaultThing(pygame.sprite.Sprite):
     def __init__(self, group, obj_name, x_y, stack_size, level):
@@ -166,10 +169,11 @@ class DefaultThing(pygame.sprite.Sprite):
 
     def getCoordsInFrame(self):
         coords_on_screen = (
-            self.level.map_.coords_about_screean[0] + self.x_y[0], self.level.map_.coords_about_screean[1] + self.x_y[1])
+            self.level.map_.coords_about_screean[0] + self.x_y[0],
+            self.level.map_.coords_about_screean[1] + self.x_y[1])
         return coords_on_screen
 
-    def setBox(self,box, x, y):
+    def setBox(self, box, x, y):
         self.in_box = True
         self.box = box
         self.taked = False
@@ -185,12 +189,12 @@ class DefaultThing(pygame.sprite.Sprite):
         if self.name != 'default_thing':
             if collide_or_not:
                 self.showStack()
-            if mouse and collide_or_not and not self.taked:
-                self.taked = True
+            if mouse and collide_or_not and not self.taked and not self.level.i_have_taked_thing:
                 if self.in_box:
-                    self.in_box = False
                     self.box.giveThing(self)
-                    self.box = None
+                else:
+                    self.taked = True
+                    self.level.i_have_taked_thing = True
                 self.eq_coords = (point[0] - self.rect.x, point[1] - self.rect.y)
                 return 0
             if not self.in_box:
@@ -198,25 +202,25 @@ class DefaultThing(pygame.sprite.Sprite):
                     self.rect.x, self.rect.y = point[0] - self.eq_coords[0], point[1] - self.eq_coords[1]
                 if mouse and self.taked:
                     self.taked = False
+                    self.level.i_have_taked_thing = False
                     self.x_y = self.getCoordsOnMap((self.rect.x, self.rect.y))
                     self.rect.x, self.rect.y = self.getCoordsInFrame()
                 if not self.taked:
                     self.rect.x, self.rect.y = self.getCoordsInFrame()
             else:
                 if collide_or_not:
-                    text = font.render(self.param['actions'], 1, (83, 150, 104))
+                    text = font.render(self.param['actions'], 1, (0, 0, 0))
                     text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
                     text_y = self.rect.y - 50
                     self.level.screen.blit(text, (text_x, text_y))
 
-
     def showStack(self):
-        text = font1.render(str(self.stack_size), 1, (83, 150, 104))
+        text = font1.render(str(self.stack_size), 1, (0, 0, 0))
         text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
         text_y = self.rect.y + self.rect.h + 3
         self.level.screen.blit(text, (text_x, text_y))
         temp = text.get_height()
-        text = font1.render(' '.join(self.name.split('_')).title(), 1, (83, 150, 104))
+        text = font1.render(' '.join(self.name.split('_')).title(), 1, (0, 0, 0))
         text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
         text_y = self.rect.y + self.rect.h + 6 + temp
         self.level.screen.blit(text, (text_x, text_y))
@@ -232,7 +236,8 @@ class ThingBox(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = x_y
         self.cells_group = pygame.sprite.Group()
         self.cells = [DefaultThing(self.cells_group, 'default_thing', [i, x_y[1] + 10], 1,
-                                   self.player.level) for i in range(self.rect.x + 10, self.rect.x + num_of_cell * 80, 80)]
+                                   self.player.level) for i in
+                      range(self.rect.x + 10, self.rect.x + num_of_cell * 80, 80)]
 
     def collideRectImMap(self, rect):
         x, y, w, h = rect
@@ -259,24 +264,58 @@ class ThingBox(pygame.sprite.Sprite):
     def takeThing(self, thing):
         indx = mod(- self.rect.x + thing.rect.x - 10) // 80
         temp = self.cells[indx]
+        if temp.name == thing.name:
+            temp.stack_size += thing.stack_size
+            thing.kill()
+            return
         if temp.name != 'default_thing':
             self.giveThing(self.cells[indx])
-        self.cells[indx].kill()
+        else:
+            self.cells[indx].kill()
         self.cells[indx] = thing
 
         thing.setBox(self, self.rect.x + 10 + indx * 80, self.rect.y + 10)
         self.cells_group.add(thing)
 
-
     def giveThing(self, th):
         indx = self.cells.index(th)
+        self.cells[indx].in_box = False
+        self.cells[indx].box = None
+        self.cells[indx].taked = True
+        self.cells[indx].level.i_have_taked_thing = True
         self.cells_group.remove(self.cells[indx])
-        self.cells[indx] = DefaultThing(self.cells_group, 'default_thing', [self.rect.x + indx * 80 + 10, self.rect.y + 10], 1,
-                                   self.player.level)
+        self.cells[indx] = DefaultThing(self.cells_group, 'default_thing',
+                                        [self.rect.x + indx * 80 + 10, self.rect.y + 10], 1,
+                                        self.player.level)
+
+    def countThatThings(self, thing, need):
+        res = 0
+        indexes = []
+        for i in range(len(self.cells)):
+            if res >= need:
+                res = need
+                break
+            if self.cells[i].name == thing:
+               res += int(self.cells[i].stack_size)
+               indexes.append(i)
+        return (res, indexes)
+
+    def takeThingForCraft(self, thing_indxs, need):
+        for i in thing_indxs:
+            if need >= self.cells[i].stack_size:
+                need -= self.cells[i].stack_size
+                self.cells[i].kill()
+                self.cells[i] = DefaultThing(self.cells_group, 'default_thing',
+                                                [self.rect.x + i * 80 + 10, self.rect.y + 10], 1,
+                                                self.player.level)
+            else:
+                self.cells[i].stack_size -= need
+                break
 
 
     def update(self):
         self.cells_group.draw(self.player.level.screen)
+
         thing = self.collideAnyInMap()
         if thing:
             self.takeThing(thing)
