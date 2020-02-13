@@ -1,6 +1,40 @@
 import pygame
 from CONSTANTS import width, height, load_image, font
 from map import Map
+class Button(pygame.sprite.Sprite):
+    def __init__(self, group, image, x, y, func, menu):
+        self.menu = menu
+        super().__init__(group)
+        self.cur_frame = 0
+        self.frames = []
+        self.cut_sheet(load_image(image), 1, 2)
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.method = func
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.y + self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def method(self):
+        pass
+
+    def update(self, point, mouse_button_down):
+        if self.rect.collidepoint(point):
+            self.cur_frame = 1
+            if mouse_button_down:
+                self.menu.pressMouseButton(self.method(True))
+        else:
+            self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+
 from Player import Player, Menu
 from BaseObjectClasses import StaticObject, InteractionObject, DefaultThing, ThingBox
 
@@ -20,6 +54,7 @@ class GameLevel():
         self.interaction_obj_sprite = pygame.sprite.Group()
         self.static_obj_sprite = pygame.sprite.Group()
         self.dinamic_obj_sprite = pygame.sprite.Group()
+        self.i_have_taked_thing = False
 
         # объекты
         self.map_ = Map(self.screen)  # карта
@@ -40,9 +75,6 @@ class GameLevel():
         return coords_on_map
 
     def cleanLevel(self):
-        self.screen = screen
-        self.main_menu = main_menu
-
         # группы спрайтов
         self.menu_sprite = pygame.sprite.Group()
         self.player_sprite = pygame.sprite.Group()
@@ -78,11 +110,13 @@ class GameLevel():
         self.interaction_obj_sprite.update(fps, point, mouse_button_down, mouse_button_down_r)
         self.player_sprite.draw(self.screen)
 
-        self.menu_sprite.update(fps, point)
+        self.menu_sprite.update(fps, point, mouse_button_down)
         self.menu_sprite.draw(self.screen)
         self.player_sprite.update(fps, self.getCoordsOnMap(point), mouse_button_down)
+
         self.things_ogf_spr.draw(self.screen)
         self.things_ogf_spr.update(fps, point, mouse_button_down)
+
 
         if self.level_state == 'win':
             self.main_menu.game_stat = 'WinFrame'
@@ -121,6 +155,8 @@ class GameLevel():
                                                                    [24 * 300 + 50, 11 * 300 - 150], self.map_, 'end_portal', self.player_main))
         DefaultThing(self.things_ogf_spr, 'grass_matirial' ,[16 * 300 + 50, 3 * 300], 10, self)
         DefaultThing(self.things_ogf_spr, 'grass_matirial', [20 * 300 + 50, 3 * 300], 10, self)
+        DefaultThing(self.things_ogf_spr, 'grass_matirial', [3 * 300 + 50, 1 * 300 - 150], 10, self)
+        DefaultThing(self.things_ogf_spr, 'stick_matirial', [3 * 300 + 50, 1 * 300 - 150], 10, self)
 
 
 class InGameMenuSprite():
@@ -128,8 +164,8 @@ class InGameMenuSprite():
         self.screen = screen
         self.menu = Menu(group, player, self.screen)
 
-    def update(self, clock, fps_):
-        self.menu.update(clock, fps_)
+    def update(self, clock, fps_, mouse):
+        self.menu.update(clock, fps_, mouse)
 
 
 class MainMenu():
@@ -168,41 +204,6 @@ class MainMenu():
         if not self.image is None:
             self.image.draw(self.screen)
         self.buttons.draw(self.screen)
-
-
-class Button(pygame.sprite.Sprite):
-    def __init__(self, group, image, x, y, func, menu):
-        self.menu = menu
-        super().__init__(group)
-        self.cur_frame = 0
-        self.frames = []
-        self.cut_sheet(load_image(image), 1, 2)
-        self.image = self.frames[self.cur_frame]
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.method = func
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.y + self.rect.h * j)
-                self.frames.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
-    def method(self):
-        pass
-
-    def update(self, point, mouse_button_down):
-        if self.rect.collidepoint(point):
-            self.cur_frame = 1
-            if mouse_button_down:
-                self.menu.pressMouseButton(self.method(True))
-        else:
-            self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
 
 
 class PauseMenu(MainMenu):
