@@ -72,16 +72,28 @@ interaction_obj_param = {'cup_of_power':
                               'image_w': 265, 'image_h': 402, 'rows': 1, 'colomns': 2,
                               'comment': 'Wow! May be it is the End...', 'fuc': portal},
                          }
-thing_param = {'name_thing': {'image': 'iamge.png', 'actions': 'Drop/Use',
-                              'strength': 100, 'usage': -10, 'comment': ''},
-               'name_food': {'image': 'thig_obj_images/food_obj_images/eggs_img.png', 'comment': '',
-                             'calorie': 10, 'heal': 0, 'red_madness': 0, 'actions': 'Drop/Eat'},
-               'name_matirial': {'image': 'thig_obj_images/thing_obj_img/dead_grass.png', 'actions': 'Drop', 'comment': ''},
-               'default_thing': {'image': 'thig_obj_images/thing_obj_img/default_image.png', 'comment': ''},
-               'grass_matirial': {'image': 'thig_obj_images/thing_obj_img/dead_grass.png', 'actions': 'Drop', 'comment': ''},
-               'rope_matirial': {'image': 'thig_obj_images/thing_obj_img/rope.png', 'actions': 'Drop', 'comment': ''},
-               'stick_matirial': {'image': 'thig_obj_images/thing_obj_img/stick.png', 'actions': 'Drop', 'comment': ''},}
-
+thing_param = {'name_useable_thing':
+                   {'image': 'iamge.png', 'actions': 'Drop/Use',
+                              'strength': 100, 'usage': -10, 'comment': '', 'type': 'useable_things'},
+               'name_food':
+                   {'image': 'thig_obj_images/food_obj_images/eggs_img.png', 'comment': '',
+                             'calorie': 10, 'heal': 0, 'red_madness': 0, 'actions': 'Drop/Eat', 'type':'food'},
+               'name_matirial':
+                   {'image': 'thig_obj_images/thing_obj_img/dead_grass.png', 'actions': 'Drop', 'comment': '', 'type': 'matirial_things'},
+               'default_thing':
+                   {'image': 'thig_obj_images/thing_obj_img/default_image.png', 'comment': ''},
+               'grass_matirial':
+                   {'image': 'thig_obj_images/thing_obj_img/dead_grass.png', 'actions': 'Drop', 'comment': '',
+                                 'recipe': [], 'type': 'matirial_things'},
+               'rope_matirial':
+                   {'image': 'thig_obj_images/thing_obj_img/rope.png', 'actions': 'Drop', 'comment': 'Do you want to bind someone?',
+                                 'recipe': ['grass_matirial 3'], 'type': 'matirial_things'},
+               'stick_matirial':
+                   {'image': 'thig_obj_images/thing_obj_img/stick.png', 'actions': 'Drop', 'comment': '', 'type': 'matirial_things'},
+               'grass_stick':
+                   {'image': 'thig_obj_images/thing_obj_img/grass_stick.png', 'actions': 'Drop/Use',
+                              'strength': 100, 'usage': -10, 'comment': '', 'type': 'useable_things',
+                    'recipe': ['grass_matirial 3', 'stick_matirial 3', 'light 50']}} # доделать чтобы работало со светом и тенью.
 
 def mod(a):
     if a < 0:
