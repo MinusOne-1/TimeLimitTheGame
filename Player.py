@@ -1,6 +1,8 @@
 import pygame, math
 from math import sqrt as sq
-from CONSTANTS import width, height, load_image, font
+from CONSTANTS import width, height, load_image, font, thing_param, font1
+from Level import Button
+from BaseObjectClasses import DefaultThing
 
 
 class Player(pygame.sprite.Sprite):
@@ -29,7 +31,7 @@ class Player(pygame.sprite.Sprite):
         # разрезка восточного направления
         for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
             self.cut_sheet(Player.image_r, 5, 2, i, 3)
-        #нарезка переднего направления
+        # нарезка переднего направления
         for i in range(0, (self.num_of_anim) * 466 - 233 + 1, 466):
             self.cut_sheet(Player.image_d, 5, 2, i, 0)
         # нарезка pflytuj направления
@@ -65,9 +67,11 @@ class Player(pygame.sprite.Sprite):
         self.state = None  # craft, run, stay, vector
         self.vector = (self.speed, self.speed, 0, 0, False, False)
         self.timer = 0
+        self.crafting_things = ''
 
     def setInventaryBox(self, box):
         self.inventary = box
+
     def cut_sheet(self, sheet, columns, rows, ots, napr):
         self.rect = pygame.Rect(0, ots, sheet.get_width() // columns,
                                 sheet.get_height() // (rows * self.num_of_anim))
@@ -98,9 +102,10 @@ class Player(pygame.sprite.Sprite):
         self.inventary_group.draw(self.level.screen)
         self.inventary_group.update()
 
-        self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
-        pygame.draw.rect(self.level.screen, pygame.color.Color(255, 0, 0), self.force_rect)
+        #self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
+        #pygame.draw.rect(self.level.screen, pygame.color.Color(255, 0, 0), self.force_rect)
         self.i_j_k += 1
+
         if self.health <= 0:
             self.level.level_state = 'die'
         # Тиковые параметры, которые изменяются с течением времни.
@@ -112,9 +117,13 @@ class Player(pygame.sprite.Sprite):
         # Параметры, которые изменяются от внешних воздействий и колайдов
         # None
         # перемещение
-        if mouse_button_down and not self.inventary.rect.collidepoint(self.getCoordsInFrame(point)):
+        in_frame_point = self.getCoordsInFrame(point)
+        if (mouse_button_down and not (self.inventary.rect.collidepoint(in_frame_point)) and
+                                       not (self.state == 'craft' or self.state == 'dont_move')):
             self.state = 'vector'
             self.findVector(point)
+        if self.state == 'dont_move':
+            self.state = 'stay'
         # Параметры отрисовки и нажатия на кнокпки
         pressed_keys = pygame.key.get_pressed()
 
@@ -154,7 +163,7 @@ class Player(pygame.sprite.Sprite):
             self.frames_in_itter = 10
         if self.state == 'craft':
             if self.timer >= 9:
-                self.state = 'stay'
+                self.craftSomething()
                 self.timer = 0
             if self.timer == 0:
                 self.cur_frame = (2, 0)
@@ -265,10 +274,11 @@ class Player(pygame.sprite.Sprite):
 
     def collideRectImMapWithSpeed(self, rect, x_y, speed):
         pass
+
     def collideRectImMap(self, rect):
         x, y, w, h = rect
 
-        x1, y1, w1, h1 = self.rect.x + self.rect.w // 2 - self.force , self.rect.y + self.rect.h - 15 - self.force, self.force * 2, self.force * 2
+        x1, y1, w1, h1 = self.rect.x + self.rect.w // 2 - self.force, self.rect.y + self.rect.h - 15 - self.force, self.force * 2, self.force * 2
         if ((x <= x1 <= x + w and y <= y1 <= y + h) or
                 (x <= x1 + w1 <= x + w and y <= y1 + h1 <= y + h) or
                 (x <= x1 + w1 <= x + w and y <= y1 <= y + h) or
@@ -337,31 +347,108 @@ class Player(pygame.sprite.Sprite):
         self.x_y = [x, y]
         self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
 
+    def craftSomething(self):
+        DefaultThing(self.level.things_ogf_spr, self.crafting_things,
+                     [self.x_y[0] - 35, self.x_y[1] - 35], 1,
+                     self.level)
+        self.crafting_things = ''
+        self.state = 'stay'
+
+class CraftListThing(pygame.sprite.Sprite):
+    back_image = load_image('interface_images/craft_table_bookmarks/craft_list_thing_backgr.png')
+
+    def __init__(self, x, y, name):
+        super().__init__()
+        self.name = name
+        self.param = thing_param[name]
+        self.image = self.draw_icon()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+
+    def draw_icon(self):
+        sur = CraftListThing.back_image.copy()
+        text = ' '.join(self.name.split('_')).title()
+        text = font1.render(text, 1, (0, 0, 0))
+        text_x = (200 - text.get_width()) // 2
+        text_y = 10
+        sur.blit(text, (text_x, text_y))
+        sur.blit(load_image(self.param['image']), (200 // 2 - 70 // 2, text.get_height() + 15))
+        text_x, text_y = 8, text.get_height() + 15 + 8 + 70
+        for i in self.param['recipe']:
+            temp = i.split()
+            image = ''
+            if temp[0] == 'light':
+                image = pygame.Surface((30, 30))
+                image.fill((243, 242, 146))
+            elif temp[0] == 'dark':
+                image = pygame.Surface((30, 30))
+                image.fill((61, 0, 61))
+            else:
+                image = pygame.transform.scale(load_image(thing_param[temp[0]]['image']), (30, 30))
+            text = font1.render(temp[1] + 'x', 1, (0, 0, 0))
+            sur.blit(text, (text_x, text_y))
+            text_x += 3 + text.get_width()
+            sur.blit(image, (text_x, text_y))
+            text_x += 30
+        return sur
+
 
 class CraftMenuButton(pygame.sprite.Sprite):
 
-    def __init__(self, group, x, y, img=''):
+    def __init__(self, group, x, y, screen, player, img=None, rec_list=[]):
         super().__init__(group)
-        self.image = pygame.Surface([110, 50])
-        self.image.fill(pygame.Color("red"))
+        self.player = player
+        self.screen = screen
         self.speed = 3
-        self.rect = self.image.get_rect()
+        self.collide_opened = False
+        self.button_group = pygame.sprite.Group()
+        Button(self.button_group, 'interface_images/craft_table_bookmarks/arror_button_up.png',
+               150 + 200 // 2 - 135 // 2, height // 2 - 250 // 2 - 57 - 5, lambda u: '1', self)
+        Button(self.button_group, 'interface_images/craft_table_bookmarks/create_button.png', 150 + 200 // 2 - 135 // 2,
+               height // 2 - 250 // 2 + 250 - 70, lambda u: '', self)
+        Button(self.button_group, 'interface_images/craft_table_bookmarks/arror_button_down.png',
+               150 + 200 // 2 - 135 // 2, height // 2 - 250 // 2 + 250 + 5, lambda u: '-1', self)
+
+        if not img is None:
+            self.image = load_image(img)
+            self.rect = self.image.get_rect()
+        else:
+            self.image = pygame.Surface([110, 50])
+            self.image.fill(pygame.Color("red"))
         self.rect.x = x
         self.rect.y = y
         self.x_closepoint = x + 45
         # личные меню
-        self.list_of_craft = []
+        self.list_of_craft_names = rec_list
+        self.list_of_craft = [pygame.sprite.Group(CraftListThing(150, height // 2 - 250 // 2, i)) for i in rec_list]
         self.name = ''
+        self.open = False
+        self.open_again = False
+        self.cur_item = 0
 
-    def update(self, fps, point):
+    def update(self, fps, point, mouse_b):
+        self.open_again = False
+        if (self.open and mouse_b and
+                (150 <= point[0] <= 450 and height // 2 - 250 // 2 - 57 - 5 <= point[1] <= height // 2 - 250 // 2 + 250 + 5 + 57)):
+            self.collide_opened = True
+        if self.open and len(self.list_of_craft_names):
+            self.button_group.update(point, mouse_b)
         # При наведении мышкой выдвигается и задвигается назад в иначе
         if self.rect.collidepoint(point):
             if self.rect.x < self.x_closepoint:
                 self.rect.x += self.speed
+            # При нажатиии на закладку показывается список рецептов крафта.
+            if mouse_b:
+                self.open = True
         else:
+            if mouse_b and not self.open_again:
+                self.open = False
             if self.rect.x > self.x_closepoint - 45:
                 self.rect.x -= self.speed
-        # При нажатиии на закладку показывается список рецептов крафта.
+        if self.open:
+            if len(self.list_of_craft) > 0:
+                self.list_of_craft[self.cur_item].draw(self.screen)
+                self.button_group.draw(self.screen)
 
     def addToListOfCraft(self, rec):
         self.list_of_craft.append(rec)
@@ -369,42 +456,99 @@ class CraftMenuButton(pygame.sprite.Sprite):
     def setName(self, name):
         self.name = name
 
+    def pressMouseButton(self, arg):
+        self.open_again = True
+        if arg == '1' or arg == '-1':
+            self.player.state = 'dont_move'
+            self.cur_item += int(arg)
+            self.cur_item = self.cur_item % len(self.list_of_craft)
+        else:
+            self.player.state = 'dont_move'
+            thing = self.list_of_craft_names[self.cur_item]
+            i_may_make_it = True
+            recipe = []
+            for i in thing_param[thing]['recipe']:
+                temp = i.split()
+                if temp[0] == 'light':
+                    if self.player.light < int(temp[1]):
+                        i_may_make_it = False
+                        break
+                    recipe.append(('light', int(temp[1])))
+                elif temp[0] == 'dark':
+                    if self.player.darkness < int(temp[1]):
+                        i_may_make_it = False
+                        break
+                    recipe.append(('dark', int(temp[1])))
+                else:
+                    check_recipe = self.player.inventary.countThatThings(temp[0], int(temp[1]))
+                    if check_recipe[0] != int(temp[1]):
+                        i_may_make_it = False
+                        break
+                    recipe.append((check_recipe[1], int(temp[1])))
+
+            if i_may_make_it:
+                for i in recipe:
+                    if i[0] == 'light':
+                        self.player.light -= int(i[1])
+                    elif i[0] == 'dark':
+                        self.player.darkness -= int(i[1])
+                    else:
+                        self.player.inventary.takeThingForCraft(i[0], i[1])
+                self.player.crafting_things = thing
+                self.player.state = 'craft'
+
 
 class Menu(pygame.sprite.Sprite):
-    def __init__(self, group, pl, screen, img=''):
+    def __init__(self, group, pl, screen, img=None):
+        self.screen = screen
         self.list_of_menu = []
         self.stats = []
         #        self.clock = InGameClock(group, width - 300 - 50, height - 300 - 200)
-        self.createStats(group, pl, screen)
+        self.stat_group = pygame.sprite.Group()
+        self.createStats(self.stat_group, pl)
         super().__init__(group)
-        self.image = pygame.Surface([70, 800])
-        self.image.fill(pygame.Color("yellow"))
+        if not img is None:
+            self.image = load_image(img)
+            self.rect = self.image.get_rect()
+        else:
+            self.image = pygame.Surface([70, 800])
+            self.image.fill(pygame.Color("yellow"))
         self.rect = self.image.get_rect()
         self.rect.x = 30
-        self.rect.y = (height - self.image.get_height()) // 2
+        self.rect.y = 50
 
-    def update(self, fps, point):
-        for i in range(3):
-            self.list_of_menu[i].update(fps, point)
+        self.collide_opened_menu = False
+
+    def update(self, fps, point, mouse):
+        self.collide_opened_menu = False
+        for i in range(4):
+            self.list_of_menu[i].update(fps, point, mouse)
         for i in self.stats:
             i.update(fps, point)
+        self.stat_group.draw(self.screen)
+        if (30 <= point[0] <= 140 and
+                     50 <= point[1] <= 50 + 800):
+            self.stats[0].player.state = 'dont_move'
 
-    #        self.clock.update(fps)
-
-    def createStats(self, group, pl, screen):
+    def createStats(self, group, pl):
         x, y = width - 70 * 3 - 70 - 35, 100
-        self.stats = [PlayerStatShower(x, y, group, pl, screen, 'health'),
-                      PlayerStatShower(x + 70 + 35, y, group, pl, screen, 'hung'),
-                      PlayerStatShower(x + 210, y, group, pl, screen, 'mad'),
-                      PlayerStatShower(x, y + 70 + 35, group, pl, img='l_and_d', screen=screen)]
+        self.stats = [PlayerStatShower(x, y, group, pl, self.screen, 'health'),
+                      PlayerStatShower(x + 70 + 35, y, group, pl, self.screen, 'hung'),
+                      PlayerStatShower(x + 210, y, group, pl, self.screen, 'mad'),
+                      PlayerStatShower(x, y + 70 + 35, group, pl, img='l_and_d', screen=self.screen)]
         self.stats[0].setName('Health')
         self.stats[1].setName('Hunger')
         self.stats[2].setName('Madness')
         self.stats[3].setName('Light & Dark energy')
 
         x, y = 35, 90
-        for i in range(3):
-            self.list_of_menu.append(CraftMenuButton(group, x, y))
+        imgs = ['interface_images/craft_table_bookmarks/arseal_icon.png',
+                'interface_images/craft_table_bookmarks/devises_icon.png',
+                'interface_images/craft_table_bookmarks/matirial_icon.png',
+                'interface_images/craft_table_bookmarks/light_icon.png']
+        crafts = [['grass_stick'], [], ['rope_matirial', 'grass_matirial'], []]
+        for i in range(4):
+            self.list_of_menu.append(CraftMenuButton(group, x, y, self.screen, pl, img=imgs[i], rec_list=crafts[i]))
             y += 80
 
 
@@ -510,9 +654,6 @@ class PlayerStatShower(pygame.sprite.Sprite):
 
     def setParam(self, num):
         self.num = num
-
-
-
 
 
 class InGameClock(pygame.sprite.Sprite):
