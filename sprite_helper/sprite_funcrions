@@ -12,9 +12,10 @@ def mirror(im):  # функция для зеркального отображе
 
 # склеивание спрайтов в порядке добавления в лист
 def sprite_solver(list_of_files, wigth, height, row, collomn, sprite_name):
-    im = Image.new("RGBA", (wigth * collomn, height * row))
+    im = Image.new("RGBA", (wigth * collomn + 1, height * row))
     for i in range(0, height * row, height):
         for j in range(0, wigth * collomn, wigth):
+            print(i // height, j // wigth)
             img1 = Image.open(list_of_files[i // height][j // wigth])
             im.paste(img1, (j, i))
     im.save(sprite_name)
@@ -30,6 +31,15 @@ def generally_sprite(fist_s, second_s, sprite_name):
     im.save(sprite_name)
 
 
+def generally_sprite_to_width(fist_s, second_s, sprite_name):
+    fist_s = Image.open(fist_s)
+    second_s = Image.open(second_s)
+    im = Image.new("RGBA", (fist_s.width + second_s.width, fist_s.height))
+    im.paste(fist_s, (0, 0))
+    im.paste(second_s, (fist_s.width, 0))
+    im.save(sprite_name)
+
+
 # склеивание спрайта, так, чтобы анимация была повёлнута в другую сторону
 def revesed_sprite_solver(list_of_files, wigth, height, row, collomn, sprite_name):
     im = Image.new("RGBA", (wigth * collomn, height * row))
@@ -39,7 +49,8 @@ def revesed_sprite_solver(list_of_files, wigth, height, row, collomn, sprite_nam
             im.paste(mirror(img1), (j, i))
     im.save(sprite_name)
 
-#список на склейку
+
+# список на склейку
 list_of_files = [['C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_1.png',
                   'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_2.png',
                   'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_1_3.png',
@@ -50,6 +61,10 @@ list_of_files = [['C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исх
                   'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_3.png',
                   'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_4.png',
                   'C:\\Users\\пользоваель\\Desktop\\TimeLimit\\исходники_изображений\\file\\craft_2_5.png']]
-revesed_sprite_solver(list_of_files, 205, 233, 2, 5, 'second_sprite.png')
-generally_sprite('first_sprite.png',
-                 'second_sprite.png', 'res_sprite.png')
+# revesed_sprite_solver(list_of_files, 205, 233, 2, 5, 'attack_r.png')
+# generally_sprite('data/player_character/jaylf_sprite_d_stay.png', 'attack.png',
+# 'data/player_character/jaylf_sprite_d_stay.png')ata/
+#generally_sprite(list_of_files[0][0], list_of_files[0][1],
+                 #'data/interface_images/craft_table_bookmarks/arror_button_up.png')
+#revesed_sprite_solver(list_of_files, 600, 300, 2, 5, 'data/dinamic_object_images/mole_r.png')
+generally_sprite_to_width(list_of_files[0][0], list_of_files[0][1], 'data/interaction_object_image/switch_gate.png')
