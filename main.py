@@ -2,7 +2,6 @@
 import pygame
 from CONSTANTS import width, height
 
-
 # установка окружния основные иниты
 clock = pygame.time.Clock()
 pygame.init()
@@ -34,11 +33,6 @@ while running:
                 else:
                     full_screen_mod = False
                     screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
-            if event.key == pygame.K_SPACE:
-                if game.player_main.state == 'craft':
-                    game.player_main.state = 'stay'
-                else:
-                    game.player_main.state = 'craft'
             if event.key == pygame.K_TAB and menu.game_stat:
                 menu.game_stat = 'Pause_menu'
         if event.type == pygame.MOUSEBUTTONDOWN:
