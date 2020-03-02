@@ -1,6 +1,9 @@
 import pygame
-from CONSTANTS import width, height, load_image, font
+
+from CONSTANTS import width, height, load_image
 from map import Map
+
+
 class Button(pygame.sprite.Sprite):
     def __init__(self, group, image, x, y, func, menu):
         self.menu = menu
@@ -35,8 +38,9 @@ class Button(pygame.sprite.Sprite):
             self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
 
+
 from Player import Player, Menu
-from BaseObjectClasses import StaticObject, InteractionObject, DefaultThing, ThingBox
+from BaseObjectClasses import StaticObject, InteractionObject, DefaultThing, ThingBox, InteractionContainer
 
 
 class GameLevel():
@@ -51,19 +55,20 @@ class GameLevel():
         self.dinamic_obj_not_in_frame = []
         self.interaction_obj_not_in_frame = []
         self.things_ogf_spr = pygame.sprite.Group()
+        self.usebale_things_ogf_spr = pygame.sprite.Group()
         self.interaction_obj_sprite = pygame.sprite.Group()
         self.static_obj_sprite = pygame.sprite.Group()
         self.dinamic_obj_sprite = pygame.sprite.Group()
+
         self.i_have_taked_thing = False
 
         # объекты
         self.map_ = Map(self.screen)  # карта
         self.player_main = Player(self.player_sprite, self.map_, self)  # игрок
-        self.player_main.teleportTo(self.map_.first_player_coords[0], self.map_.first_player_coords[1])
-        self.player_main.setInventaryBox(ThingBox(self.player_main.inventary_group, 10, (width // 2 - (10 * 70 + (10 + 1) * 10) // 2, height - 200), self.player_main))
-
-        self.map_.changeCoords([-self.player_main.x_y[0] + width // 2,
-                                -self.player_main.x_y[1] + height // 2 + self.player_main.image.get_height() // 2 - 10])
+        self.player_main.teleportTo(self.map_.first_player_coords[0] + 300, self.map_.first_player_coords[1] + 300)
+        self.player_main.setInventaryBox(
+            ThingBox(self.player_main.inventary_group, 10, (width // 2 - (10 * 70 + (10 + 1) * 10) // 2, height - 200),
+                     self.player_main))
 
         self.menu = InGameMenuSprite(self.menu_sprite, self.player_main, self.screen)
         self.levelGenerator()
@@ -75,6 +80,18 @@ class GameLevel():
         return coords_on_map
 
     def cleanLevel(self):
+        for i in self.menu_sprite:
+            i.kill()
+        for i in self.player_sprite:
+            i.kill()
+        for i in self.things_ogf_spr:
+            i.kill()
+        for i in self.usebale_things_ogf_spr:
+            i.kill()
+        for i in self.interaction_obj_sprite:
+            i.kill()
+        for i in self.static_obj_sprite:
+            i.kill()
         # группы спрайтов
         self.menu_sprite = pygame.sprite.Group()
         self.player_sprite = pygame.sprite.Group()
@@ -82,41 +99,54 @@ class GameLevel():
         self.dinamic_obj_not_in_frame = []
         self.interaction_obj_not_in_frame = []
         self.things_ogf_spr = pygame.sprite.Group()
+        self.usebale_things_ogf_spr = pygame.sprite.Group()
         self.interaction_obj_sprite = pygame.sprite.Group()
         self.static_obj_sprite = pygame.sprite.Group()
-        self.dinamic_obj_sprite = pygame.sprite.Group()
+
+        self.i_have_taked_thing = False
 
         # объекты
         self.map_ = Map(self.screen)  # карта
         self.player_main = Player(self.player_sprite, self.map_, self)  # игрок
-        self.player_main.teleportTo(self.map_.first_player_coords[0], self.map_.first_player_coords[1])
+        self.player_main.teleportTo(self.map_.first_player_coords[0] + 300, self.map_.first_player_coords[1] + 300)
         self.player_main.setInventaryBox(
             ThingBox(self.player_main.inventary_group, 10, (width // 2 - (10 * 70 + (10 + 1) * 10) // 2, height - 200),
                      self.player_main))
-
-        self.map_.changeCoords([-self.player_main.x_y[0] + width // 2,
-                                -self.player_main.x_y[1] + height // 2 + self.player_main.image.get_height() // 2 - 10])
 
         self.menu = InGameMenuSprite(self.menu_sprite, self.player_main, self.screen)
         self.levelGenerator()
         self.level_state = 'playing'
 
+    def spawn(self, obj_type, obj_name, x, y):
+        if obj_type == 'interaction':
+            self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
+                                                                       self.getCoordsOnMap([x, y]), self.map_, obj_name,
+                                                                       self.player_main))
+
     def render(self, fps, point, mouse_button_down, mouse_button_down_r):
         self.screen.fill((50, 50, 50))
         self.map_.draw()
-        self.static_obj_sprite.update(fps, point)
+
         self.static_obj_sprite.draw(self.screen)
         self.interaction_obj_sprite.draw(self.screen)
-        self.interaction_obj_sprite.update(fps, point, mouse_button_down, mouse_button_down_r)
+        pressed_keys = pygame.key.get_pressed()
+
         self.player_sprite.draw(self.screen)
 
-        self.menu_sprite.update(fps, point, mouse_button_down)
+        self.menu_sprite.update(fps, point, mouse_button_down, pressed_keys)
         self.menu_sprite.draw(self.screen)
-        self.player_sprite.update(fps, self.getCoordsOnMap(point), mouse_button_down)
 
-        self.things_ogf_spr.draw(self.screen)
+        self.usebale_things_ogf_spr.update(fps, point, mouse_button_down, mouse_button_down_r)
         self.things_ogf_spr.update(fps, point, mouse_button_down)
 
+        self.interaction_obj_sprite.update(fps, point, mouse_button_down, mouse_button_down_r)
+        self.static_obj_sprite.update(fps, point)
+
+        self.player_sprite.update(fps, self.getCoordsOnMap(point), mouse_button_down, mouse_button_down_r, pressed_keys)
+
+        self.things_ogf_spr.draw(self.screen)
+
+        self.usebale_things_ogf_spr.draw(self.screen)
 
         if self.level_state == 'win':
             self.main_menu.game_stat = 'WinFrame'
@@ -129,34 +159,51 @@ class GameLevel():
 
     def levelGenerator(self):
         self.static_obj_not_in_frame.append(
-            StaticObject(self.static_obj_sprite, self.screen, [3 * 300 + 50, 1 * 300 - 150], self.map_,
+            StaticObject(self.static_obj_sprite, self.screen, [3 * 300 + 100, 1 * 300 + 100], self.map_,
                          'broken_portal'))
         self.static_obj_not_in_frame.append(
-            StaticObject(self.static_obj_sprite, self.screen, [4 * 300, 1 * 300], self.map_,
+            StaticObject(self.static_obj_sprite, self.screen, [4 * 300 + 100, 1 * 300 + 100], self.map_,
                          'sign_1'))
         self.static_obj_not_in_frame.append(
-            StaticObject(self.static_obj_sprite, self.screen, [9 * 300, 3 * 300 - 180], self.map_,
+            StaticObject(self.static_obj_sprite, self.screen, [9 * 300 + 100, 3 * 300 + 100], self.map_,
                          'sign_2'))
         self.static_obj_not_in_frame.append(
-            StaticObject(self.static_obj_sprite, self.screen, [11 * 300, 3 * 300 - 180], self.map_,
+            StaticObject(self.static_obj_sprite, self.screen, [11 * 300 + 100, 3 * 300 + 100], self.map_,
                          'sign_3'))
         self.static_obj_not_in_frame.append(
-            StaticObject(self.static_obj_sprite, self.screen, [16 * 300, 3 * 300 - 180], self.map_,
+            StaticObject(self.static_obj_sprite, self.screen, [16 * 300 + 100, 3 * 300 + 100], self.map_,
                          'sign_4'))
         self.static_obj_not_in_frame.append(
-            StaticObject(self.static_obj_sprite, self.screen, [25 * 300, 3 * 300 - 180], self.map_,
+            StaticObject(self.static_obj_sprite, self.screen, [25 * 300 + 100, 3 * 300 + 100], self.map_,
                          'sign_5'))
         self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
-                                                                   [24 * 300 + 50, 5 * 300 - 150], self.map_,
+                                                                   [24 * 300 + 100, 5 * 300 + 100], self.map_,
                                                                    'bush', self.player_main))
         self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
-                                                                   [24 * 300 + 50, 3 * 300 - 150], self.map_, 'cup_of_power', self.player_main))
+                                                                   [24 * 300 + 100, 3 * 300 + 100], self.map_,
+                                                                   'cup_of_power', self.player_main))
         self.interaction_obj_not_in_frame.append(InteractionObject(self.interaction_obj_sprite, self.screen,
-                                                                   [24 * 300 + 50, 11 * 300 - 150], self.map_, 'end_portal', self.player_main))
-        DefaultThing(self.things_ogf_spr, 'grass_matirial' ,[16 * 300 + 50, 3 * 300], 10, self)
+                                                                   [24 * 300 + 100, 11 * 300 + 100], self.map_,
+                                                                   'end_portal', self.player_main))
+        DefaultThing(self.things_ogf_spr, 'grass_matirial', [16 * 300 + 50, 3 * 300], 10, self)
         DefaultThing(self.things_ogf_spr, 'grass_matirial', [20 * 300 + 50, 3 * 300], 10, self)
-        DefaultThing(self.things_ogf_spr, 'grass_matirial', [3 * 300 + 50, 1 * 300 - 150], 10, self)
-        DefaultThing(self.things_ogf_spr, 'stick_matirial', [3 * 300 + 50, 1 * 300 - 150], 10, self)
+        self.interaction_obj_not_in_frame.append(
+            InteractionObject(self.interaction_obj_sprite, self.screen, [300 * 15 + 100, 300 * 5 + 100],
+                              self.map_, 'spatial_discontinuity', self.player_main))
+        self.interaction_obj_not_in_frame.append(
+            InteractionObject(self.interaction_obj_sprite, self.screen, [300 * 4 + 100, 300 * 7 + 100],
+                              self.map_, 'spatial_discontinuity', self.player_main))
+        self.interaction_obj_not_in_frame[-2].args_for_interaction = self.interaction_obj_not_in_frame[-1]
+        self.interaction_obj_not_in_frame[-1].args_for_interaction = self.interaction_obj_not_in_frame[-2]
+        self.interaction_obj_not_in_frame.append(
+            InteractionObject(self.interaction_obj_sprite, self.screen, [300 * 15 + 150, 300 * 6 + 300],
+                              self.map_, 'gate', self.player_main, may_be_interacted=False))
+        self.interaction_obj_not_in_frame.append(
+            InteractionObject(self.interaction_obj_sprite, self.screen, [300 * 7 + 100, 300 * 7 + 100],
+                              self.map_, 'switch_gate', self.player_main, self.interaction_obj_not_in_frame[-1]))
+        self.interaction_obj_not_in_frame.append(InteractionContainer(self.interaction_obj_sprite,
+                                                                      self.screen, [26 * 300, 11 * 300], self.map_,
+                                                                      'casket', self.player_main))
 
 
 class InGameMenuSprite():
@@ -164,8 +211,8 @@ class InGameMenuSprite():
         self.screen = screen
         self.menu = Menu(group, player, self.screen)
 
-    def update(self, clock, fps_, mouse):
-        self.menu.update(clock, fps_, mouse)
+    def update(self, clock, fps_, mouse, pressed_keys):
+        self.menu.update(clock, fps_, mouse, pressed_keys)
 
 
 class MainMenu():
@@ -213,4 +260,3 @@ class PauseMenu(MainMenu):
 
     def pressMouseButton(self, state):
         self.main_manu.pressMouseButton(state)
-

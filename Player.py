@@ -1,8 +1,9 @@
-import pygame, math
-from math import sqrt as sq
+import math
+import pygame
+
+from BaseObjectClasses import DefaultThing, UsebaleThings
 from CONSTANTS import width, height, load_image, font, thing_param, font1
 from Level import Button
-from BaseObjectClasses import DefaultThing
 
 
 class Player(pygame.sprite.Sprite):
@@ -57,17 +58,19 @@ class Player(pygame.sprite.Sprite):
         self.hunger_max = 200
 
         # Cлужебные параметры
+        self.equipped = None
         self.i_may_go = False
         self.speed = 8  # скорость
-        self.force = 50  # дальность внешнего взаимодействия объекта
+        self.force = 40  # дальность внешнего взаимодействия объекта
         self.i_j_k = 0  # счётчик итераций, для кадров.
         self.x_y = [0, 0]  # координаты игрока на карте игры
-        self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
+        self.force_rect = (self.x_y[1], self.x_y[0], self.force * 2, self.force * 2)
         self.mad_coaff = 0.09
-        self.state = None  # craft, run, stay, vector
+        self.state = ''  # craft, run, stay, vector, use:#, dont_move
         self.vector = (self.speed, self.speed, 0, 0, False, False)
         self.timer = 0
         self.crafting_things = ''
+        self.crafting_stack = 1
 
     def setInventaryBox(self, box):
         self.inventary = box
@@ -98,12 +101,10 @@ class Player(pygame.sprite.Sprite):
             self.level.map_.coords_about_screean[0] + coords[0], self.level.map_.coords_about_screean[1] + coords[1])
         return coords_on_screen
 
-    def update(self, fps, point, mouse_button_down):
+    def update(self, fps, point, mouse_button_down, mouse_button_down_r, pressed_keys):
         self.inventary_group.draw(self.level.screen)
-        self.inventary_group.update()
-
-        #self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
-        #pygame.draw.rect(self.level.screen, pygame.color.Color(255, 0, 0), self.force_rect)
+        in_frame_point = self.getCoordsInFrame(point)
+        self.collideRectImMapWithSpeed()
         self.i_j_k += 1
 
         if self.health <= 0:
@@ -116,16 +117,28 @@ class Player(pygame.sprite.Sprite):
         self.changeMadnessAbout(self.mad_coaff * fps)
         # Параметры, которые изменяются от внешних воздействий и колайдов
         # None
-        # перемещение
-        in_frame_point = self.getCoordsInFrame(point)
+
+        # проверка состояния игрока - действия.
+
         if (mouse_button_down and not (self.inventary.rect.collidepoint(in_frame_point)) and
-                                       not (self.state == 'craft' or self.state == 'dont_move')):
+                not (self.state == 'craft' or self.state == 'dont_move' or 'use' in self.state)):
             self.state = 'vector'
             self.findVector(point)
         if self.state == 'dont_move':
             self.state = 'stay'
+        if 'use' in self.state:
+            if mouse_button_down:
+                self.equipped.useThing(self.level, in_frame_point[0], in_frame_point[1])
+                self.state = 'stay'
+                self.equipped = None
+            if mouse_button_down_r:
+                self.state = 'stay'
+                self.equipped = None
+            pygame.draw.ellipse(self.level.screen, pygame.color.Color(255, 0, 0),
+                                pygame.rect.Rect(in_frame_point[0] - 25, in_frame_point[1] - 25, 50, 50))
+        self.inventary_group.update(fps, in_frame_point, mouse_button_down, mouse_button_down_r)
+
         # Параметры отрисовки и нажатия на кнокпки
-        pressed_keys = pygame.key.get_pressed()
 
         if self.state == 'vector':
             self.toVector()
@@ -192,28 +205,32 @@ class Player(pygame.sprite.Sprite):
     def toVector(self):
         if self.vector[0] > 0:
             if self.x_y[0] <= self.vector[2]:
-                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g'
+                        and not self.collideAnyInMap(self.vector[0], 0)):
                     self.x_y[0] += self.vector[0]
                     self.map.coords_about_screean[0] -= self.vector[0]
             else:
                 self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], False, self.vector[5])
         else:
             if self.x_y[0] >= self.vector[2]:
-                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g'
+                        and not self.collideAnyInMap(self.vector[0], 0)):
                     self.x_y[0] += self.vector[0]
                     self.map.coords_about_screean[0] -= self.vector[0]
             else:
                 self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], False, self.vector[5])
         if self.vector[1] > 0:
             if self.x_y[1] <= self.vector[3]:
-                if self.map.map[(self.x_y[1] - self.speed + 30) // 300][(self.x_y[0] + 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] - self.speed + 30) // 300][(self.x_y[0] + 35) // 300] == 'g'
+                        and not self.collideAnyInMap(0, self.vector[1])):
                     self.x_y[1] += self.vector[1]
                     self.map.coords_about_screean[1] -= self.vector[1]
             else:
                 self.vector = (self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.vector[4], False)
         else:
             if self.x_y[1] >= self.vector[3]:
-                if self.map.map[(self.x_y[1] + self.speed - 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] + self.speed - 30) // 300][(self.x_y[0] - 35) // 300] == 'g'
+                        and not self.collideAnyInMap(0, self.vector[1])):
                     self.x_y[1] += self.vector[1]
                     self.map.coords_about_screean[1] -= self.vector[1]
             else:
@@ -225,7 +242,8 @@ class Player(pygame.sprite.Sprite):
         if keyboard[pygame.K_LEFT]:
             self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] - self.speed - 35) // 300] == 'g' and
+                        not self.collideAnyInMap(-self.speed, 0)):
                     self.x_y[0] -= self.speed
                     self.map.coords_about_screean[0] += self.speed
             else:
@@ -234,7 +252,8 @@ class Player(pygame.sprite.Sprite):
         if keyboard[pygame.K_RIGHT]:
             self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] - 10) // 300][(self.x_y[0] + self.speed + 35) // 300] == 'g' and
+                        not self.collideAnyInMap(self.speed, 0)):
                     self.x_y[0] += self.speed
                     self.map.coords_about_screean[0] -= self.speed
             else:
@@ -243,7 +262,8 @@ class Player(pygame.sprite.Sprite):
         if keyboard[pygame.K_DOWN]:
             self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] + self.speed + 30) // 300][(self.x_y[0] - 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] + self.speed + 30) // 300][(self.x_y[0] - 35) // 300] == 'g' and
+                        not self.collideAnyInMap(0, self.speed)):
                     self.x_y[1] += self.speed
                     self.map.coords_about_screean[1] -= self.speed
             else:
@@ -252,7 +272,8 @@ class Player(pygame.sprite.Sprite):
         if keyboard[pygame.K_UP]:
             self.state = 'stay'
             if not self.i_may_go:
-                if self.map.map[(self.x_y[1] - self.speed - 30) // 300][(self.x_y[0] + 35) // 300] == 'g':
+                if (self.map.map[(self.x_y[1] - self.speed - 30) // 300][(self.x_y[0] + 35) // 300] == 'g' and
+                        not self.collideAnyInMap(0, -self.speed)):
                     self.x_y[1] -= self.speed
                     self.map.coords_about_screean[1] += self.speed
             else:
@@ -263,22 +284,26 @@ class Player(pygame.sprite.Sprite):
     def castChar(self, char):
         pass
 
-    def collideAnyInMap(self):
+    def collideAnyInMap(self, speed_x, speed_y):
         for i in self.level.static_obj_not_in_frame:
-            if self.collideRectImMap(i.rect):
-                return False
+            if self.collideRectImMap(i.force_rect, speed_x, speed_y, 0, 0):
+                return True
         for i in self.level.interaction_obj_not_in_frame:
-            if self.collideRectImMap(i.rect):
-                return False
-        return True
+            if self.collideRectImMap(i.force_rect, speed_x, speed_y, 0, 0):
+                return True
+        return False
 
-    def collideRectImMapWithSpeed(self, rect, x_y, speed):
-        pass
+    def collideRectImMapWithSpeed(self):
+        self.force_rect = self.getCoordsInFrame(self.x_y)
+        self.force_rect = (
+        self.force_rect[0] - self.force, self.force_rect[1] - self.force, self.force * 2, self.force * 2)
+        pygame.draw.rect(self.level.screen, pygame.color.Color(255, 0, 0), self.force_rect)
 
-    def collideRectImMap(self, rect):
+    def collideRectImMap(self, rect, speed_x, speed_y, plus_w, plus_h):
         x, y, w, h = rect
-
-        x1, y1, w1, h1 = self.rect.x + self.rect.w // 2 - self.force, self.rect.y + self.rect.h - 15 - self.force, self.force * 2, self.force * 2
+        x1, y1, w1, h1 = self.force_rect
+        x1, y1 = x1 + speed_x - plus_w // 2, y1 + speed_y - plus_h // 2
+        w1, h1 = w1 + plus_w, h1 + plus_h
         if ((x <= x1 <= x + w and y <= y1 <= y + h) or
                 (x <= x1 + w1 <= x + w and y <= y1 + h1 <= y + h) or
                 (x <= x1 + w1 <= x + w and y <= y1 <= y + h) or
@@ -346,13 +371,25 @@ class Player(pygame.sprite.Sprite):
     def teleportTo(self, x, y):
         self.x_y = [x, y]
         self.force_rect = (self.x_y[0], self.x_y[1], self.force * 2, self.force * 2)
+        self.map.changeCoords([-self.x_y[0] + width // 2,
+                               -self.x_y[1] + height // 2 + self.image.get_height() // 2 - 10])
 
     def craftSomething(self):
-        DefaultThing(self.level.things_ogf_spr, self.crafting_things,
-                     [self.x_y[0] - 35, self.x_y[1] - 35], 1,
-                     self.level)
+        type_th = thing_param[self.crafting_things]['type']
+        if type_th == 'matirial_things':
+            DefaultThing(self.level.things_ogf_spr, self.crafting_things,
+                         [self.x_y[0] - 35, self.x_y[1] - 35], self.crafting_stack,
+                         self.level)
+        elif type_th == 'food':
+            pass
+        elif type_th == 'useable_things':
+            UsebaleThings(self.level.usebale_things_ogf_spr, self.crafting_things,
+                          [self.x_y[0] - 35, self.x_y[1] - 35], self.crafting_stack,
+                          self.level)
+        self.crafting_stack = 1
         self.crafting_things = ''
         self.state = 'stay'
+
 
 class CraftListThing(pygame.sprite.Sprite):
     back_image = load_image('interface_images/craft_table_bookmarks/craft_list_thing_backgr.png')
@@ -428,8 +465,9 @@ class CraftMenuButton(pygame.sprite.Sprite):
 
     def update(self, fps, point, mouse_b):
         self.open_again = False
-        if (self.open and mouse_b and
-                (150 <= point[0] <= 450 and height // 2 - 250 // 2 - 57 - 5 <= point[1] <= height // 2 - 250 // 2 + 250 + 5 + 57)):
+        if ((self.open and mouse_b and
+                (150 <= point[0] <= 450 and height // 2 - 250 // 2 - 57 - 5 <= point[
+                    1] <= height // 2 - 250 // 2 + 250 + 5 + 57))):
             self.collide_opened = True
         if self.open and len(self.list_of_craft_names):
             self.button_group.update(point, mouse_b)
@@ -442,6 +480,7 @@ class CraftMenuButton(pygame.sprite.Sprite):
                 self.open = True
         else:
             if mouse_b and not self.open_again:
+                self.player.level.menu.menu.have_opened = False
                 self.open = False
             if self.rect.x > self.x_closepoint - 45:
                 self.rect.x -= self.speed
@@ -516,18 +555,40 @@ class Menu(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = 30
         self.rect.y = 50
-
+        self.have_opened = False
         self.collide_opened_menu = False
+        self.last_itteration = 0
 
-    def update(self, fps, point, mouse):
+    def update(self, fps, point, mouse, pressed_keys):
         self.collide_opened_menu = False
+        if pressed_keys[pygame.K_q] and not self.last_itteration:
+            open = False
+            for i in self.list_of_menu:
+                if i.open:
+                    open = True
+                    break
+            print(open, self.have_opened)
+            if not open and not self.have_opened:
+                self.last_itteration = True
+                self.have_opened = True
+                self.list_of_menu[0].open = True
+            elif open and self.have_opened:
+                self.last_itteration = True
+                self.have_opened = False
+                for i in self.list_of_menu:
+                    i.open = False
+        else:
+            if self.last_itteration != 5:
+                self.last_itteration += 1
+            else:
+                self.last_itteration = 0
         for i in range(4):
             self.list_of_menu[i].update(fps, point, mouse)
         for i in self.stats:
             i.update(fps, point)
         self.stat_group.draw(self.screen)
         if (30 <= point[0] <= 140 and
-                     50 <= point[1] <= 50 + 800):
+                50 <= point[1] <= 50 + 800):
             self.stats[0].player.state = 'dont_move'
 
     def createStats(self, group, pl):
