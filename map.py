@@ -1,3 +1,5 @@
+# закоммичено
+
 import pygame
 from CONSTANTS import Maps, width, height, load_image
 
@@ -21,7 +23,7 @@ tile_images = {'r_grass_end': load_image('textur/end_of_grass_from_up.png'),
                'grass_end_three_sides_u_r_l': load_image('textur/end_of_grass_three_sides_u_d.png'),
                'grass_end_three_sides_d_l_r': pygame.transform.flip(load_image('textur/end_of_grass_three_sides_u_d.png'),
                                                                     False, True),
-               'void': load_image('textur/plain_grass.png'),
+               'void': load_image('textur/plain_out_the_board.png'),
                'plain_grass': load_image('textur/plain_grass.png')}
 
 
@@ -47,8 +49,9 @@ class Map():
         for i in range(len(self.map)):
             for j in range(len(self.map[0])):
                 if self.map[i][j] == '~':
+                    #ends = self.checkEndsAroundVoid(i, j)  # низ лево верх право
                     pass
-                    # sur.blit(tile_images['void'], (i * 300, j * 300))
+                    #sur.blit(tile_images['void'], (j * 300, i * 300))
                 elif self.map[i][j] == 'g':
                     if self.first_player_coords is None:
                         self.first_player_coords = (j * 300 + 70, i * 300 + 70)
@@ -110,6 +113,26 @@ class Map():
         if self.map[i][j + 1] == '~':
             ends[3] = True
         return ends
+
+    def checkEndsAroundVoid(self, i, j):
+        # лево лево-верх верх право-верх
+        ends = [False, False, False, False]
+        if 0 < i < len(self.map) and 0 < j < len(self.map) - 1:
+            if self.map[i - 1][j] == 'g':
+                ends[2] = True
+                if self.map[i - 1][j - 1] == 'g':
+                    ends[1] = True
+                if self.map[i - 1][j + 1] == 'g':
+                    ends[1] = True
+            if self.map[i][j - 1] == 'g':
+                ends[0] = True
+            return
+        if 0 < j < len(self.map) - 1 and i == 0:
+            return
+        if 0 < i < len(self.map) and j == len(self.map) - 1:
+            return
+        if 0 < i < len(self.map) and j == 0:
+            return
 
     def draw(self):
         self.screen.blit(self.map_surfaces[0], self.coords_about_screean)
