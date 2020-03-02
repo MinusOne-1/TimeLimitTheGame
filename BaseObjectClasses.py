@@ -1,16 +1,18 @@
 import pygame
-from CONSTANTS import height, width, static_obj_param, load_image, font, thing_param, interaction_obj_param, mod, font1
+
+from CONSTANTS import static_obj_param, load_image, font, thing_param, interaction_obj_param, mod, font1
 
 
 def burh(self):
-    DefaultThing(self.player.level.things_ogf_spr, 'stick_matirial', [self.x_y[0], self.x_y[1] + 50], 2,
-                 self.player.level)
+    self.player.crafting_things = 'stick_matirial'
+    self.player.crafting_stack = 2
+    self.player.state = 'craft'
     self.may_be_interacted = False
 
 
 interaction_obj_param['bush'] = {'num_of_anim': 1,
                                  'images': ['interaction_object_image/stick_bush.png', 'img_r', 'img_u', 'img_d'],
-                                 'image_w': 200, 'image_h': 137, 'rows': 1, 'colomns': 2,
+                                 'image_w': 200, 'image_h': 137, 'rows': 1, 'colomns': 2, 'force': 25,
                                  'comment': 'a bush. Ok.', 'fuc': burh}
 
 
@@ -27,6 +29,11 @@ class BaseObject(pygame.sprite.Sprite):
         self.frames_in_itter = 30  # кол-во иттераций на один кадр
         self.cur_frame = (0, 0)  # выделеный кадр анимации
         self.num_of_anim = 1  # количество анимаций
+        self.force = 50
+
+        self.force_rect = (0, 0)
+        self.force_rect = (
+            self.force_rect[0] - self.force, self.force_rect[1] - self.force, self.force * 2, self.force * 2)
 
         # параметры объекта
         self.health = 200  # здоровье
@@ -63,8 +70,32 @@ class StaticObject(BaseObject):
             self.image = self.images[0]
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = self.getCoordsInFrame()
+        self.force = self.param['force']
+        self.force_rect = self.getCoordsInFrame()
+        self.force_rect = (
+            self.force_rect[0] - self.param['image_w'] // 2, self.force_rect[1] - self.force, self.param['image_w'],
+            self.force * 2)
+
+    def getCoordsInFrame(self):
+        coords_on_screen = (
+            self.map.coords_about_screean[0] + self.x_y[0] - self.param['image_w'] // 2,
+            self.map.coords_about_screean[1] + self.x_y[1] - self.param['image_h'])
+        return coords_on_screen
+
+    def getCoordsInFrameForMapRect(self):
+        coords_on_screen = (
+            self.map.coords_about_screean[0] + self.x_y[0],
+            self.map.coords_about_screean[1] + self.x_y[1])
+        return coords_on_screen
+
+    def rectInMap(self):
+        self.force_rect = self.getCoordsInFrameForMapRect()
+        self.force_rect = (
+            self.force_rect[0] - self.param['image_w'] // 2, self.force_rect[1] - self.force, self.param['image_w'],
+            self.force * 2)
 
     def update(self, fps, point):
+        self.rectInMap()
         self.rect.x, self.rect.y = self.getCoordsInFrame()
         self.collideMouse(point)
         if self.num_of_anim >= 1:
@@ -87,16 +118,17 @@ class DinamicObject(BaseObject):
 
 
 class InteractionObject(BaseObject):
-    def __init__(self, group, screen, x_y, map_, obj_name, player):
+    def __init__(self, group, screen, x_y, map_, obj_name, player, arg=None, may_be_interacted=True):
         self.screen = screen
+        self.may_be_interacted = may_be_interacted
         self.player = player
-        self.may_be_interacted = True
         super().__init__(group, x_y, map_)
         self.param = interaction_obj_param[obj_name]
         self.interactionAction = self.param['fuc']
         self.num_of_anim = self.param['num_of_anim']
         self.images = [load_image(i) for i in self.param['images'][:1]]
         self.timer = 0
+        self.args_for_interaction = arg
 
         for i in range(0, (self.num_of_anim + 1) * self.param['image_w'], self.param['image_w'] * self.param['rows']):
             self.cut_sheet(self.images[0], self.param['colomns'], self.param['rows'], 0, 0)
@@ -105,13 +137,37 @@ class InteractionObject(BaseObject):
         self.rect.x, self.rect.y = self.getCoordsInFrame()
         self.interacted = False
 
+        self.force = self.param['force']
+        self.force_rect = self.getCoordsInFrame()
+        self.force_rect = (
+            self.force_rect[0] - self.param['image_w'] // 2, self.force_rect[1] - self.force, self.param['image_w'],
+            self.force * 2)
+
+    def rectInMap(self):
+        self.force_rect = self.getCoordsInFrameForMapRect()
+        self.force_rect = (
+            self.force_rect[0] - self.param['image_w'] // 2, self.force_rect[1] - self.force, self.param['image_w'],
+            self.force * 2)
+
+    def getCoordsInFrame(self):
+        coords_on_screen = (
+            self.map.coords_about_screean[0] + self.x_y[0] - self.param['image_w'] // 2,
+            self.map.coords_about_screean[1] + self.x_y[1] - self.param['image_h'])
+        return coords_on_screen
+
+    def getCoordsInFrameForMapRect(self):
+        coords_on_screen = (
+            self.map.coords_about_screean[0] + self.x_y[0],
+            self.map.coords_about_screean[1] + self.x_y[1])
+        return coords_on_screen
+
     def update(self, fps, point, mouse_button_down, mouse_button_down_r):
+        self.updateInterectiveObj(fps, point, mouse_button_down, mouse_button_down_r)
+
+    def updateInterectiveObj(self, fps, point, mouse_button_down, mouse_button_down_r):
         self.rect.x, self.rect.y = self.getCoordsInFrame()
         self.collideMouse(point, mouse_button_down, mouse_button_down_r)
-        if self.interacted:
-            self.cur_frame = (0, 1)
-        else:
-            self.cur_frame = (0, 0)
+        self.rectInMap()
         if 0 < self.timer < 200:
             text = font.render(self.param['comment'], 1, (83, 189, 104))
             text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
@@ -126,11 +182,15 @@ class InteractionObject(BaseObject):
         pass
 
     def interaction(self):
-        if not self.interacted and self.player.collideRectImMap(self.rect) and self.may_be_interacted:
+        if not self.interacted and self.player.collideRectImMap(self.force_rect, 0, 0, 25,
+                                                                25) and self.may_be_interacted:
             self.interacted = True
+            if self.param['colomns'] > 1:
+                self.cur_frame = (0, 1)
             self.interactionAction(self)
-        elif self.interacted and self.player.collideRectImMap(self.rect) and self.may_be_interacted:
+        elif self.interacted and self.player.collideRectImMap(self.force_rect, 0, 0, 25, 25) and self.may_be_interacted:
             self.interacted = False
+            self.cur_frame = (0, 0)
 
     def collideMouse(self, point, mouse_button_down, mouse_button_down_r):
         if self.rect.collidepoint(point):
@@ -141,11 +201,22 @@ class InteractionObject(BaseObject):
 
 
 class InteractionContainer(InteractionObject):
-    def __init__(self, group, screen, x_y, map_, obj_name):
-        super().__init__(group, screen, x_y, map_, obj_name)
+    def __init__(self, group, screen, x_y, map_, obj_name, player, arg=None, may_be_interacted=True):
+        super().__init__(group, screen, x_y, map_, obj_name, player, arg, may_be_interacted)
         self.conteiners = pygame.sprite.Group()
-        self.container = ThingBox(self.conteiners, 1, [self.rect.x
-            , self.rect.y])
+        self.opened = False
+        self.container = ThingBox(self.conteiners, self.param['num_of_cells'], [self.rect.x
+            , self.rect.y], self.player)
+
+    def update(self, fps, point, mouse_button_down, mouse_button_down_r):
+        self.updateInterectiveObj(fps, point, mouse_button_down, mouse_button_down_r)
+        if self.opened:
+            self.updateContainer(fps, point, mouse_button_down, mouse_button_down_r)
+
+    def updateContainer(self, fps, point, mouse_button_down, mouse_button_down_r):
+        self.container.changeCoords(self.rect.x - self.rect.w // 2, self.rect.y - 105)
+        self.conteiners.draw(self.screen)
+        self.conteiners.update(fps, point, mouse_button_down, mouse_button_down_r)
 
 
 class DefaultThing(pygame.sprite.Sprite):
@@ -167,6 +238,9 @@ class DefaultThing(pygame.sprite.Sprite):
             self.rect.x, self.rect.y = x_y
         self.box = None
 
+    def changeCoords(self, x, y):
+        self.rect.x, self.rect.y = x, y
+
     def getCoordsInFrame(self):
         coords_on_screen = (
             self.level.map_.coords_about_screean[0] + self.x_y[0],
@@ -184,8 +258,7 @@ class DefaultThing(pygame.sprite.Sprite):
             coords[0] - self.level.map_.coords_about_screean[0], coords[1] - self.level.map_.coords_about_screean[1])
         return coords_on_map
 
-    def update(self, fps, point, mouse):
-        collide_or_not = self.rect.collidepoint(point)
+    def takeThings(self, collide_or_not, mouse, point):
         if self.name != 'default_thing':
             if collide_or_not:
                 self.showStack()
@@ -198,14 +271,14 @@ class DefaultThing(pygame.sprite.Sprite):
                 self.eq_coords = (point[0] - self.rect.x, point[1] - self.rect.y)
                 return 0
             if not self.in_box:
-                if self.taked:
-                    self.rect.x, self.rect.y = point[0] - self.eq_coords[0], point[1] - self.eq_coords[1]
                 if mouse and self.taked:
                     self.taked = False
                     self.level.i_have_taked_thing = False
                     self.x_y = self.getCoordsOnMap((self.rect.x, self.rect.y))
                     self.rect.x, self.rect.y = self.getCoordsInFrame()
-                if not self.taked:
+                elif self.taked:
+                    self.rect.x, self.rect.y = point[0] - self.eq_coords[0], point[1] - self.eq_coords[1]
+                elif not self.taked:
                     self.rect.x, self.rect.y = self.getCoordsInFrame()
             else:
                 if collide_or_not:
@@ -213,6 +286,10 @@ class DefaultThing(pygame.sprite.Sprite):
                     text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
                     text_y = self.rect.y - 50
                     self.level.screen.blit(text, (text_x, text_y))
+
+    def update(self, fps, point, mouse, *args):
+        collide_or_not = self.rect.collidepoint(point)
+        self.takeThings(collide_or_not, mouse, point)
 
     def showStack(self):
         text = font1.render(str(self.stack_size), 1, (0, 0, 0))
@@ -224,6 +301,48 @@ class DefaultThing(pygame.sprite.Sprite):
         text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
         text_y = self.rect.y + self.rect.h + 6 + temp
         self.level.screen.blit(text, (text_x, text_y))
+
+
+class UsebaleThings(DefaultThing):
+    def __init__(self, group, obj_name, x_y, stack_size, level):
+        super().__init__(group, obj_name, x_y, stack_size, level)
+        self.strength = self.param['strength']
+        self.for_one_use = self.param['usage']
+        self.func = self.param['func']
+
+    def showStack(self):
+        text = font1.render(str(self.stack_size), 1, (255, 255, 255))
+        text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
+        text_y = self.rect.y + self.rect.h + 3
+        self.level.screen.blit(text, (text_x, text_y))
+        temp = text.get_height()
+        text = font1.render(' '.join(self.name.split('_')).title(), 1, (255, 255, 255))
+        text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
+        text_y = self.rect.y + self.rect.h + 6 + temp
+        self.level.screen.blit(text, (text_x, text_y))
+        text_y = self.rect.y + self.rect.h + 6 + temp
+        temp = text.get_height()
+        text = font1.render(str(self.strength), 1, (255, 255, 255))
+        text_x = self.rect.x + (self.rect.w - text.get_width()) // 2
+        text_y += temp
+        self.level.screen.blit(text, (text_x, text_y))
+
+    def useThing(self, level, x, y):
+        self.func(level, x, y)
+        self.strength += self.for_one_use
+        if self.strength <= 0:
+            self.level.player_main.inventary.deleteThing(th=self)
+
+    def areWeUseThing(self, collide_or_not, mouse_b_r):
+        if mouse_b_r:
+            if collide_or_not:
+                self.level.player_main.state = 'use'
+                self.level.player_main.equipped = self
+
+    def update(self, fps, point, mouse, mouse_b_r, *args):
+        collide_or_not = self.rect.collidepoint(point)
+        self.takeThings(collide_or_not, mouse, point)
+        self.areWeUseThing(collide_or_not, mouse_b_r)
 
 
 class ThingBox(pygame.sprite.Sprite):
@@ -238,6 +357,14 @@ class ThingBox(pygame.sprite.Sprite):
         self.cells = [DefaultThing(self.cells_group, 'default_thing', [i, x_y[1] + 10], 1,
                                    self.player.level) for i in
                       range(self.rect.x + 10, self.rect.x + num_of_cell * 80, 80)]
+
+    def changeCoords(self, x, y):
+        self.rect.x, self.rect.y = x, y
+        x = self.rect.x + 10
+        y = self.rect.y + 10
+        for i in self.cells:
+            i.changeCoords(x, y)
+            x += 80
 
     def collideRectImMap(self, rect):
         x, y, w, h = rect
@@ -260,6 +387,9 @@ class ThingBox(pygame.sprite.Sprite):
         for i in self.player.level.things_ogf_spr:
             if self.collideRectImMap(i.rect) and i not in self.cells and not i.taked:
                 return i
+        for i in self.player.level.usebale_things_ogf_spr:
+            if self.collideRectImMap(i.rect) and i not in self.cells and not i.taked:
+                return i
 
     def takeThing(self, thing):
         indx = mod(- self.rect.x + thing.rect.x - 10) // 80
@@ -273,16 +403,24 @@ class ThingBox(pygame.sprite.Sprite):
         else:
             self.cells[indx].kill()
         self.cells[indx] = thing
-
-        thing.setBox(self, self.rect.x + 10 + indx * 80, self.rect.y + 10)
         self.cells_group.add(thing)
+        thing.setBox(self, self.rect.x + 10 + indx * 80, self.rect.y + 10)
+        if thing.param['type'] == 'useable_things':
+            self.player.level.usebale_things_ogf_spr.remove(thing)
+        elif thing.param['type'] == 'food' or thing.param['type'] == 'matirial_things':
+            self.player.level.things_ogf_spr.remove(thing)
 
     def giveThing(self, th):
         indx = self.cells.index(th)
         self.cells[indx].in_box = False
         self.cells[indx].box = None
         self.cells[indx].taked = True
-        self.cells[indx].level.i_have_taked_thing = True
+        self.player.level.i_have_taked_thing = True
+
+        if th.param['type'] == 'useable_things':
+            self.player.level.usebale_things_ogf_spr.add(th)
+        elif th.param['type'] == 'food' or th.param['type'] == 'matirial_things':
+            self.player.level.things_ogf_spr.add(th)
         self.cells_group.remove(self.cells[indx])
         self.cells[indx] = DefaultThing(self.cells_group, 'default_thing',
                                         [self.rect.x + indx * 80 + 10, self.rect.y + 10], 1,
@@ -296,24 +434,31 @@ class ThingBox(pygame.sprite.Sprite):
                 res = need
                 break
             if self.cells[i].name == thing:
-               res += int(self.cells[i].stack_size)
-               indexes.append(i)
+                res += int(self.cells[i].stack_size)
+                indexes.append(i)
         return (res, indexes)
+
+    def deleteThing(self, th=None, indx=None):
+        if not th is None:
+            indx = self.cells.index(th)
+        self.cells[indx].kill()
+        self.cells[indx] = DefaultThing(self.cells_group, 'default_thing',
+                                        [self.rect.x + indx * 80 + 10, self.rect.y + 10], 1,
+                                        self.player.level)
 
     def takeThingForCraft(self, thing_indxs, need):
         for i in thing_indxs:
             if need >= self.cells[i].stack_size:
                 need -= self.cells[i].stack_size
-                self.cells[i].kill()
-                self.cells[i] = DefaultThing(self.cells_group, 'default_thing',
-                                                [self.rect.x + i * 80 + 10, self.rect.y + 10], 1,
-                                                self.player.level)
+                self.deleteThing(indx=i)
+
             else:
                 self.cells[i].stack_size -= need
                 break
 
+    def update(self, fps, point, mouse_button_down, mouse_button_down_r):
 
-    def update(self):
+        self.cells_group.update(fps, point, mouse_button_down, mouse_button_down_r)
         self.cells_group.draw(self.player.level.screen)
 
         thing = self.collideAnyInMap()
